@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { checkForSpam } from "@/lib/spam-protection";
 import { createFUBContact } from "@/lib/fub";
+import { sendGuideEmail } from "@/lib/email";
 
 export async function POST(request: Request) {
   try {
@@ -40,28 +41,32 @@ export async function POST(request: Request) {
       );
     }
 
-    // Push to Follow Up Boss
-    // FUB has an automation trigger on source="Buying Property in Mexico Guide"
-    // that sends the PDF delivery email to the lead.
-    const fubResult = await createFUBContact({
-      firstName,
-      lastName,
-      email,
-      phone,
-      source: "Buying Property in Mexico Guide",
-      tags: ["Lead Magnet", "Buying Guide PDF", "guide.livingincabo.com"],
-      note: `Downloaded "Buying Property in Mexico Guide" from guide.livingincabo.com on ${new Date().toISOString()}. Phone: ${phone || "not provided"}.`,
-    });
+    // Run FUB sync and transactional email in parallel — neither depends
+    // on the other, and we don't want the user waiting on serial round-trips.
+    const [fubResult, emailResult] = await Promise.all([
+      createFUBContact({
+        firstName,
+        lastName,
+        email,
+        phone,
+        source: "Buying Property in Mexico Guide",
+        tags: ["Lead Magnet", "Buying Guide PDF", "guide.livingincabo.com"],
+        note: `Downloaded "Buying Property in Mexico Guide" from guide.livingincabo.com on ${new Date().toISOString()}. Phone: ${phone || "not provided"}.`,
+      }),
+      sendGuideEmail({ firstName, email }),
+    ]);
 
     if (!fubResult.success && !fubResult.skipped) {
       console.error("[submit] FUB failed:", fubResult.error);
-      // Still return success to the user — we don't want to block lead delivery
-      // The form shows a direct download link on success, so they still get the PDF
+    }
+    if (!emailResult.success && !emailResult.skipped) {
+      console.error("[submit] guide email failed:", emailResult.error);
     }
 
     return NextResponse.json({
       success: true,
       contactId: fubResult.contactId,
+      emailId: emailResult.id,
     });
   } catch (error) {
     console.error("[submit] error:", error);
