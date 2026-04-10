@@ -19,13 +19,15 @@ export function checkForSpam(
     return { ok: false, reason: "honeypot" };
   }
 
-  // Layer 2: Timestamp (must take at least 3 seconds)
+  // Layer 2: Timestamp (must take at least 1 second — tight enough to stop
+  // bots, loose enough that a real human autofilling won't get silently dropped)
   const loaded = Number(body._loaded);
-  if (loaded && Date.now() - loaded < 3000) {
+  if (loaded && Date.now() - loaded < 1000) {
     return { ok: false, reason: "too-fast" };
   }
 
-  // Layer 3: Rate limiting (5 per 15 minutes per IP)
+  // Layer 3: Rate limiting (30 per 15 minutes per IP — lead magnets are low
+  // volume, and the old 5/15min threshold false-positived on admin testing)
   const ip =
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
     request.headers.get("x-real-ip") ||
@@ -38,7 +40,7 @@ export function checkForSpam(
       rateLimitMap.set(ip, { count: 1, resetAt: now + 15 * 60 * 1000 });
     } else {
       entry.count++;
-      if (entry.count > 5) {
+      if (entry.count > 30) {
         return { ok: false, reason: "rate-limited" };
       }
     }

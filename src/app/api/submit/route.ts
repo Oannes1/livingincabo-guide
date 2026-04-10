@@ -6,13 +6,17 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
 
-    // Spam check
-    const spam = checkForSpam(request, body, {
-      checkContent: ["firstName", "lastName"],
-    });
+    // Spam check — honeypot + timing + rate limit only.
+    // Gibberish detection on names was dropped because it false-positives
+    // on legitimate short/consonant-heavy surnames.
+    const spam = checkForSpam(request, body);
 
     if (!spam.ok) {
-      console.log(`[submit] spam rejected: ${spam.reason}`);
+      console.warn(
+        `[submit] spam rejected (${spam.reason}) — email=${String(
+          body.email || ""
+        )}`
+      );
       // Return 200 to not reveal our spam logic to bots
       return NextResponse.json({ success: true });
     }
