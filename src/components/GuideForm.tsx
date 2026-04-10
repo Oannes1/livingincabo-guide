@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import SpamFields, { type SpamFieldsRef } from "./SpamFields";
 
 type Status = "idle" | "submitting" | "success" | "error";
@@ -46,6 +46,14 @@ export default function GuideForm() {
       }
 
       setStatus("success");
+
+      // Open the PDF in a new tab so they still get the file immediately,
+      // then redirect the main window to the primary site after a short beat.
+      try {
+        window.open("/downloads/buying-property-in-mexico-guide.pdf", "_blank");
+      } catch {
+        // ignore popup blocker — the success screen still has a download link
+      }
     } catch (err) {
       setStatus("error");
       setErrorMsg(err instanceof Error ? err.message : "Something went wrong.");
@@ -53,25 +61,7 @@ export default function GuideForm() {
   }
 
   if (status === "success") {
-    return (
-      <div className="bg-white border-l-4 border-sand-gold p-8 rounded-md shadow-lg text-center">
-        <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-sand-gold/20 mb-4">
-          <svg className="w-7 h-7 text-sand-gold-dark" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-          </svg>
-        </div>
-        <h3 className="heading-display text-3xl text-cabo-navy mb-3">Your guide is on the way.</h3>
-        <p className="text-cabo-slate mb-6 max-w-md mx-auto">
-          Check your inbox in the next few minutes. If you don&apos;t see it, check your spam folder and mark Living In Cabo as a safe sender.
-        </p>
-        <a
-          href="/downloads/buying-property-in-mexico-guide.pdf"
-          className="inline-block bg-cabo-navy hover:bg-cabo-navy-deep text-white font-semibold px-8 py-3 rounded-md transition-colors"
-        >
-          Or download it now
-        </a>
-      </div>
-    );
+    return <SuccessRedirect />;
   }
 
   return (
@@ -161,5 +151,46 @@ export default function GuideForm() {
         We respect your inbox. Unsubscribe anytime. Read our privacy policy at livingincabo.com.
       </p>
     </form>
+  );
+}
+
+function SuccessRedirect() {
+  const REDIRECT_MS = 3000;
+  const [secondsLeft, setSecondsLeft] = useState(Math.ceil(REDIRECT_MS / 1000));
+
+  useEffect(() => {
+    const tick = setInterval(() => {
+      setSecondsLeft((s) => (s > 0 ? s - 1 : 0));
+    }, 1000);
+    const timer = setTimeout(() => {
+      window.location.href = "https://livingincabo.com";
+    }, REDIRECT_MS);
+    return () => {
+      clearInterval(tick);
+      clearTimeout(timer);
+    };
+  }, []);
+
+  return (
+    <div className="bg-white border-l-4 border-sand-gold p-8 rounded-md shadow-lg text-center">
+      <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-sand-gold/20 mb-4">
+        <svg className="w-7 h-7 text-sand-gold-dark" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+        </svg>
+      </div>
+      <h3 className="heading-display text-3xl text-cabo-navy mb-3">Your guide is on the way.</h3>
+      <p className="text-cabo-slate mb-2 max-w-md mx-auto">
+        Your PDF just opened in a new tab. Check your inbox too — we emailed you a copy.
+      </p>
+      <p className="text-text-muted text-sm mb-6">
+        Taking you to LivingInCabo.com in {secondsLeft}…
+      </p>
+      <a
+        href="https://livingincabo.com"
+        className="inline-block bg-cabo-navy hover:bg-cabo-navy-deep text-white font-semibold px-8 py-3 rounded-md transition-colors"
+      >
+        Go to LivingInCabo.com now
+      </a>
+    </div>
   );
 }
