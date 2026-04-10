@@ -46,14 +46,6 @@ export default function GuideForm() {
       }
 
       setStatus("success");
-
-      // Open the PDF in a new tab so they still get the file immediately,
-      // then redirect the main window to the primary site after a short beat.
-      try {
-        window.open("/downloads/buying-property-in-mexico-guide.pdf", "_blank");
-      } catch {
-        // ignore popup blocker — the success screen still has a download link
-      }
     } catch (err) {
       setStatus("error");
       setErrorMsg(err instanceof Error ? err.message : "Something went wrong.");
@@ -163,7 +155,7 @@ function SuccessRedirect() {
       setSecondsLeft((s) => (s > 0 ? s - 1 : 0));
     }, 1000);
     const timer = setTimeout(() => {
-      window.location.href = "https://livingincabo.com";
+      window.location.href = "https://www.livingincabo.com";
     }, REDIRECT_MS);
     return () => {
       clearInterval(tick);
@@ -180,13 +172,13 @@ function SuccessRedirect() {
       </div>
       <h3 className="heading-display text-3xl text-cabo-navy mb-3">Your guide is on the way.</h3>
       <p className="text-cabo-slate mb-2 max-w-md mx-auto">
-        Your PDF just opened in a new tab. Check your inbox too — we emailed you a copy.
+        Check your inbox — we just emailed your copy of the guide. If you don&apos;t see it in a few minutes, check your spam folder and mark Living In Cabo as a safe sender.
       </p>
       <p className="text-text-muted text-sm mb-6">
         Taking you to LivingInCabo.com in {secondsLeft}…
       </p>
       <a
-        href="https://livingincabo.com"
+        href="https://www.livingincabo.com"
         className="inline-block bg-cabo-navy hover:bg-cabo-navy-deep text-white font-semibold px-8 py-3 rounded-md transition-colors"
       >
         Go to LivingInCabo.com now
