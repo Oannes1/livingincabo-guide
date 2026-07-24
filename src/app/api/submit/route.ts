@@ -1,7 +1,50 @@
 import { NextResponse } from "next/server";
 import { checkForSpam } from "@/lib/spam-protection";
 import { createFUBContact } from "@/lib/fub";
-import { sendGuideEmail } from "@/lib/email";
+import {
+  sendGuideEmail,
+  sendSellerEmail,
+  sendLeadAlertEmail,
+} from "@/lib/email";
+
+type LeadType = "buyer" | "buyer-quiz" | "seller";
+
+const QUIZ_LABELS: Record<string, Record<string, string>> = {
+  goal: {
+    retire: "Retiring / semi-retiring",
+    "second-home": "Second home / vacation",
+    investment: "Investment & rental income",
+    relocate: "Full relocation",
+  },
+  budget: {
+    under400: "Under $400K",
+    "400-700": "$400K–$700K",
+    "700-1200": "$700K–$1.2M",
+    "1200plus": "$1.2M+",
+  },
+  vibe: {
+    marina: "Marina / downtown energy",
+    resort: "Golf & resort communities",
+    artsy: "San Jose art district charm",
+    quiet: "East Cape / off the radar",
+  },
+  timeline: {
+    "0-6": "Within 6 months",
+    "6-12": "6–12 months",
+    "12plus": "1–2 years",
+    dreaming: "Just exploring",
+  },
+};
+
+function describeQuiz(quiz: Record<string, string>): string {
+  return (["goal", "budget", "vibe", "timeline"] as const)
+    .map((k) => {
+      const raw = String(quiz[k] || "");
+      const label = QUIZ_LABELS[k]?.[raw] || raw || "n/a";
+      return `${k}: ${label}`;
+    })
+    .join(" · ");
+}
 
 export async function POST(request: Request) {
   try {
@@ -22,10 +65,21 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true });
     }
 
+    const leadType: LeadType = ["buyer", "buyer-quiz", "seller"].includes(
+      String(body.leadType)
+    )
+      ? (String(body.leadType) as LeadType)
+      : "buyer";
+
     const firstName = String(body.firstName || "").trim();
     const lastName = String(body.lastName || "").trim();
     const email = String(body.email || "").trim().toLowerCase();
     const phone = String(body.phone || "").trim();
+    const propertyLocation = String(body.propertyLocation || "").trim();
+    const quiz =
+      body.quiz && typeof body.quiz === "object"
+        ? (body.quiz as Record<string, string>)
+        : null;
 
     if (!firstName || !email) {
       return NextResponse.json(
@@ -41,6 +95,25 @@ export async function POST(request: Request) {
       );
     }
 
+    const stamp = new Date().toISOString();
+
+    let source = "Buying Property in Mexico Guide";
+    let tags = ["Lead Magnet", "Buying Guide PDF", "guide.livingincabo.com"];
+    let note = `Downloaded "Buying Property in Mexico Guide" from guide.livingincabo.com on ${stamp}. Phone: ${phone || "not provided"}.`;
+
+    if (leadType === "buyer-quiz") {
+      tags = [...tags, "Cabo Buyer Quiz"];
+      note = `Took the Cabo Buyer Quiz on guide.livingincabo.com on ${stamp}.\n${
+        quiz ? describeQuiz(quiz) : "No answers recorded."
+      }\nPhone: ${phone || "not provided"}. Guide PDF sent by email.`;
+    } else if (leadType === "seller") {
+      source = "Cabo Home Valuation Request";
+      tags = ["Seller Lead", "Valuation Request", "guide.livingincabo.com"];
+      note = `Requested a free home valuation on guide.livingincabo.com on ${stamp}.\nProperty location: ${
+        propertyLocation || "not provided"
+      }.\nPhone: ${phone || "not provided"}. Follow up within 48 hours.`;
+    }
+
     // Run FUB sync and transactional email in parallel — neither depends
     // on the other, and we don't want the user waiting on serial round-trips.
     const [fubResult, emailResult] = await Promise.all([
@@ -49,18 +122,31 @@ export async function POST(request: Request) {
         lastName,
         email,
         phone,
-        source: "Buying Property in Mexico Guide",
-        tags: ["Lead Magnet", "Buying Guide PDF", "guide.livingincabo.com"],
-        note: `Downloaded "Buying Property in Mexico Guide" from guide.livingincabo.com on ${new Date().toISOString()}. Phone: ${phone || "not provided"}.`,
+        source,
+        tags,
+        note,
       }),
-      sendGuideEmail({ firstName, email }),
+      leadType === "seller"
+        ? sendSellerEmail({ firstName, email, propertyLocation })
+        : sendGuideEmail({ firstName, email }),
     ]);
 
     if (!fubResult.success && !fubResult.skipped) {
       console.error("[submit] FUB failed:", fubResult.error);
+      // Never lose a lead silently: alert the team with the lead's details
+      // so it can be entered by hand if FUB stays down.
+      await sendLeadAlertEmail({
+        leadType,
+        firstName,
+        lastName,
+        email,
+        phone,
+        detail: note,
+        error: fubResult.error || "unknown",
+      });
     }
     if (!emailResult.success && !emailResult.skipped) {
-      console.error("[submit] guide email failed:", emailResult.error);
+      console.error("[submit] lead email failed:", emailResult.error);
     }
 
     return NextResponse.json({

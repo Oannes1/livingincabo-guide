@@ -607,6 +607,51 @@ For most American retirees and second-home owners, the total cost of living in L
 - [ ] File for Mexican property tax registration
 - [ ] Talk to a cross-border accountant before year-end
 
+## The 27-Point Pre-Offer Checklist
+
+The 30-60-90 plan above is your *timeline*. This checklist is your *filter* — run all 27 points on every specific property before you sign anything. Print this page. Every item below is something our team verifies before a client makes an offer, and every one of them exists because someone, somewhere, lost money by skipping it.
+
+### Title & legal — the deal-breakers
+
+- [ ] Seller's name matches the public registry title exactly
+- [ ] Certificate of no liens (certificado de libertad de gravamen) issued within the last 30 days
+- [ ] Property is fully titled private land — not ejido land and not "in regularization"
+- [ ] No pending litigation, inheritance disputes, or unpaid taxes on record
+- [ ] Fideicomiso is assumable, or a new trust is pre-approved by the bank
+- [ ] Notario publico selected and fee quote received in writing
+- [ ] Independent legal review completed (for pre-construction: always, no exceptions)
+
+### Money & terms
+
+- [ ] Offer priced against 3+ recent comparable sales — not against list prices
+- [ ] Licensed escrow company opened before any deposit moves
+- [ ] Deposit refund conditions written into the offer
+- [ ] Full closing-cost estimate in writing
+- [ ] Currency and exchange-rate mechanics confirmed for closing day
+- [ ] If pre-construction: payment schedule tied to construction milestones, not dates
+- [ ] Title insurance quote obtained
+
+### The property & community
+
+- [ ] Professional inspection completed (yes, home inspectors exist in Cabo — use one)
+- [ ] CFE (electric) bills reviewed — confirms real usage and no hidden debts
+- [ ] Water source confirmed (municipal, well, or truck delivery)
+- [ ] HOA financials, reserves, and rules reviewed
+- [ ] HOA dues and predial (property tax) payments current
+- [ ] Short-term rental rules confirmed in writing (if rental income matters to you)
+- [ ] Internet speed tested at the property (if you'll work remotely)
+- [ ] Hurricane construction standards verified and insurance quote obtained
+- [ ] Visited at different times of day — noise, wind, traffic, neighbors
+
+### Your exit & future
+
+- [ ] Resale outlook assessed — who is the future buyer for this property?
+- [ ] Rental income projection built from real comps, not the listing agent's estimate
+- [ ] Capital gains (ISR) planning discussed *before* purchase — how you buy affects how you're taxed when you sell
+- [ ] Substitute beneficiaries planned for the trust — your estate plan, sorted on day one
+
+**How to use it:** if a property fails any item in the Title & Legal group, walk away. If it fails items in the other groups, that's not necessarily a no — it's a negotiation point or a price adjustment. The checklist doesn't kill deals. It kills *bad* deals.
+
 ## Your next step
 
 Reading this guide is the easy part. The harder part is actually getting off the fence, planning a trip, and looking at properties. That's where we come in.

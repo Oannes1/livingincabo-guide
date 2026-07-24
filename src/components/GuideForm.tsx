@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import SpamFields, { type SpamFieldsRef } from "./SpamFields";
 
 type Status = "idle" | "submitting" | "success" | "error";
@@ -59,7 +59,7 @@ export default function GuideForm() {
   return (
     <form onSubmit={onSubmit} className="bg-white p-8 md:p-10 rounded-md shadow-2xl border border-stone">
       <div className="mb-6">
-        <p className="label-caps text-sand-gold-dark mb-2">Free Download · 31 Pages · PDF</p>
+        <p className="label-caps text-sand-gold-dark mb-2">Free Download · 33 Pages · PDF</p>
         <h3 className="heading-display text-3xl md:text-4xl text-cabo-navy leading-tight">
           Get the guide
         </h3>
@@ -147,22 +147,9 @@ export default function GuideForm() {
 }
 
 function SuccessRedirect() {
-  const REDIRECT_MS = 3000;
-  const [secondsLeft, setSecondsLeft] = useState(Math.ceil(REDIRECT_MS / 1000));
-
-  useEffect(() => {
-    const tick = setInterval(() => {
-      setSecondsLeft((s) => (s > 0 ? s - 1 : 0));
-    }, 1000);
-    const timer = setTimeout(() => {
-      window.location.href = "https://www.livingincabo.com";
-    }, REDIRECT_MS);
-    return () => {
-      clearInterval(tick);
-      clearTimeout(timer);
-    };
-  }, []);
-
+  // No auto-redirect: a fresh lead is at peak intent right now, so keep
+  // them in the funnel — book a call or binge the channel, don't bounce
+  // them to the homepage mid-moment.
   return (
     <div className="bg-white border-l-4 border-sand-gold p-8 rounded-md shadow-lg text-center">
       <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-sand-gold/20 mb-4">
@@ -171,17 +158,23 @@ function SuccessRedirect() {
         </svg>
       </div>
       <h3 className="heading-display text-3xl text-cabo-navy mb-3">Your guide is on the way.</h3>
-      <p className="text-cabo-slate mb-2 max-w-md mx-auto">
-        Check your inbox — we just emailed your copy of the guide. If you don&apos;t see it in a few minutes, check your spam folder and mark Living In Cabo as a safe sender.
-      </p>
-      <p className="text-text-muted text-sm mb-6">
-        Taking you to LivingInCabo.com in {secondsLeft}…
+      <p className="text-cabo-slate mb-6 max-w-md mx-auto">
+        Check your inbox — we just emailed your copy of the guide. If you don&apos;t see it in a few
+        minutes, check your spam folder and mark Living In Cabo as a safe sender.
       </p>
       <a
-        href="https://www.livingincabo.com"
-        className="inline-block bg-cabo-navy hover:bg-cabo-navy-deep text-white font-semibold px-8 py-3 rounded-md transition-colors"
+        href="https://www.livingincabo.com/contact"
+        className="block bg-cabo-navy hover:bg-cabo-navy-deep text-white font-semibold px-8 py-4 rounded-md transition-colors mb-3"
       >
-        Go to LivingInCabo.com now
+        Book a Free Cabo Strategy Call →
+      </a>
+      <a
+        href="https://www.youtube.com/@livingincabo"
+        target="_blank"
+        rel="noopener"
+        className="block text-cabo-slate hover:text-cabo-navy text-sm font-semibold transition-colors"
+      >
+        Or watch our community tours on YouTube while you wait
       </a>
     </div>
   );
