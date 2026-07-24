@@ -38,9 +38,14 @@ export async function createFUBContact(payload: FUBPersonPayload): Promise<FUBRe
 
   const basic = Buffer.from(`${apiKey}:`).toString("base64");
 
+  // Tags are deliberately NOT sent on create. FUB only emits "tag added"
+  // events (which drive tag-triggered Automations) when tags are added to
+  // an existing person — tags included at creation set silently and no
+  // automation fires. So: create/dedupe first, then merge tags in a
+  // second call below. This also gets tags onto deduped existing
+  // contacts, which the create call ignores entirely.
   const body = {
     source: payload.source || "Buying Property in Mexico Guide",
-    tags: payload.tags || ["Lead Magnet", "Buying Guide PDF"],
     firstName: payload.firstName,
     lastName: payload.lastName || "",
     emails: payload.email ? [{ value: payload.email, type: "home" }] : [],
@@ -69,7 +74,36 @@ export async function createFUBContact(payload: FUBPersonPayload): Promise<FUBRe
       };
     }
 
-    const result = (await response.json()) as { id?: number };
+    const result = (await response.json()) as { id?: number; tags?: string[] };
+
+    // Merge tags in a second call so FUB emits real "tag added" events,
+    // which is what tag-triggered Automations listen for.
+    const desiredTags = payload.tags || ["Lead Magnet", "Buying Guide PDF"];
+    if (result.id && desiredTags.length) {
+      try {
+        const existing = Array.isArray(result.tags) ? result.tags : [];
+        const merged = Array.from(new Set([...existing, ...desiredTags]));
+        const newOnes = merged.length > existing.length;
+        if (newOnes) {
+          const tagResponse = await fetch(`${FUB_API_BASE}/people/${result.id}`, {
+            method: "PUT",
+            headers: {
+              Authorization: `Basic ${basic}`,
+              "Content-Type": "application/json",
+              "X-System": systemName,
+              "X-System-Key": apiKey.substring(0, 8),
+            },
+            body: JSON.stringify({ tags: merged }),
+          });
+          if (!tagResponse.ok) {
+            console.error("[FUB] Tag update failed:", tagResponse.status, await tagResponse.text());
+          }
+        }
+      } catch (err) {
+        console.error("[FUB] Tag update error:", err);
+        // Contact exists and note still lands — don't fail the lead over tags
+      }
+    }
 
     // Optionally add a note to the contact
     if (result.id && payload.note) {
