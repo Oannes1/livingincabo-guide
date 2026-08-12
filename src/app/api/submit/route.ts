@@ -1,11 +1,7 @@
 import { NextResponse } from "next/server";
 import { checkForSpam } from "@/lib/spam-protection";
 import { createFUBContact } from "@/lib/fub";
-import {
-  sendGuideEmail,
-  sendSellerEmail,
-  sendLeadAlertEmail,
-} from "@/lib/email";
+import { sendLeadAlertEmail } from "@/lib/email";
 
 type LeadType = "buyer" | "buyer-quiz" | "seller";
 
@@ -114,27 +110,30 @@ export async function POST(request: Request) {
       }.\nPhone: ${phone || "not provided"}. Follow up within 48 hours.`;
     }
 
-    // Run FUB sync and transactional email in parallel — neither depends
-    // on the other, and we don't want the user waiting on serial round-trips.
-    const [fubResult, emailResult] = await Promise.all([
-      createFUBContact({
-        firstName,
-        lastName,
-        email,
-        phone,
-        source,
-        tags,
-        note,
-      }),
-      leadType === "seller"
-        ? sendSellerEmail({ firstName, email, propertyLocation })
-        : sendGuideEmail({ firstName, email }),
-    ]);
+    // Follow Up Boss owns ALL lead email from here on. The tags written
+    // below trigger FUB Automations, whose Action Plans send every message
+    // — including the guide delivery — from Aaron's connected
+    // ac@aaroncuha.com mailbox. Replies land in his inbox and every send is
+    // logged on the contact timeline.
+    //
+    // The site no longer sends lead-facing mail itself. It used to go
+    // through Resend, which silently delivered only to the Resend account
+    // owner because no verified sending domain was configured, so real
+    // leads never received the guide.
+    const fubResult = await createFUBContact({
+      firstName,
+      lastName,
+      email,
+      phone,
+      source,
+      tags,
+      note,
+    });
 
     if (!fubResult.success && !fubResult.skipped) {
       console.error("[submit] FUB failed:", fubResult.error);
-      // Never lose a lead silently: alert the team with the lead's details
-      // so it can be entered by hand if FUB stays down.
+      // FUB is now the only delivery path, so a failure here means the lead
+      // gets nothing. Alert the team out-of-band so it can be entered by hand.
       await sendLeadAlertEmail({
         leadType,
         firstName,
@@ -145,14 +144,10 @@ export async function POST(request: Request) {
         error: fubResult.error || "unknown",
       });
     }
-    if (!emailResult.success && !emailResult.skipped) {
-      console.error("[submit] lead email failed:", emailResult.error);
-    }
 
     return NextResponse.json({
       success: true,
       contactId: fubResult.contactId,
-      emailId: emailResult.id,
     });
   } catch (error) {
     console.error("[submit] error:", error);
