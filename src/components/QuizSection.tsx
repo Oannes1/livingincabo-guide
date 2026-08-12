@@ -226,13 +226,16 @@ export default function QuizSection() {
               </div>
             ))}
           </div>
-          <p className="text-sm text-cabo-slate mb-6">
-            📬 The 33-page guide — with pricing and detail on every region — is on its way to
-            your inbox right now.
-          </p>
+          <a
+            href="/downloads/buying-property-in-mexico-guide.pdf"
+            download
+            className="block w-full text-center bg-sand-gold hover:bg-sand-gold-dark text-cabo-navy font-semibold py-4 rounded-md transition-colors mb-3"
+          >
+            Download the 33-Page Guide (PDF) →
+          </a>
           <a
             href="https://www.livingincabo.com/contact"
-            className="block w-full text-center bg-sand-gold hover:bg-sand-gold-dark text-cabo-navy font-semibold py-4 rounded-md transition-colors"
+            className="block w-full text-center bg-cabo-navy hover:bg-cabo-navy-deep text-white font-semibold py-4 rounded-md transition-colors"
           >
             Book a Free Cabo Strategy Call →
           </a>

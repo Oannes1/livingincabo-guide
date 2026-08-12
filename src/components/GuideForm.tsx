@@ -157,11 +157,17 @@ function SuccessRedirect() {
           <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
         </svg>
       </div>
-      <h3 className="heading-display text-3xl text-cabo-navy mb-3">Your guide is on the way.</h3>
+      <h3 className="heading-display text-3xl text-cabo-navy mb-3">Here&apos;s your guide.</h3>
       <p className="text-cabo-slate mb-6 max-w-md mx-auto">
-        Check your inbox — we just emailed your copy of the guide. If you don&apos;t see it in a few
-        minutes, check your spam folder and mark Living In Cabo as a safe sender.
+        Download it right now — we&apos;re also emailing you a copy for your records.
       </p>
+      <a
+        href="/downloads/buying-property-in-mexico-guide.pdf"
+        download
+        className="block bg-sand-gold hover:bg-sand-gold-dark text-cabo-navy font-semibold px-8 py-4 rounded-md transition-colors mb-3"
+      >
+        Download the Guide (PDF) →
+      </a>
       <a
         href="https://www.livingincabo.com/contact"
         className="block bg-cabo-navy hover:bg-cabo-navy-deep text-white font-semibold px-8 py-4 rounded-md transition-colors mb-3"
