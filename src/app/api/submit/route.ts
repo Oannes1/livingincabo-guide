@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { checkForSpam } from "@/lib/spam-protection";
 import { createFUBContact } from "@/lib/fub";
-import { sendLeadAlertEmail } from "@/lib/email";
+import { sendLeadAlertEmail, sendGuideEmail, sendSellerEmail } from "@/lib/email";
 
 type LeadType = "buyer" | "buyer-quiz" | "seller";
 
@@ -110,30 +110,35 @@ export async function POST(request: Request) {
       }.\nPhone: ${phone || "not provided"}. Follow up within 48 hours.`;
     }
 
-    // Follow Up Boss owns ALL lead email from here on. The tags written
-    // below trigger FUB Automations, whose Action Plans send every message
-    // — including the guide delivery — from Aaron's connected
-    // ac@aaroncuha.com mailbox. Replies land in his inbox and every send is
-    // logged on the contact timeline.
-    //
-    // The site no longer sends lead-facing mail itself. It used to go
-    // through Resend, which silently delivered only to the Resend account
-    // owner because no verified sending domain was configured, so real
-    // leads never received the guide.
-    const fubResult = await createFUBContact({
-      firstName,
-      lastName,
-      email,
-      phone,
-      source,
-      tags,
-      note,
-    });
+    // Two independent write paths so a lead NEVER falls through the cracks:
+    //   1. Follow Up Boss  — CRM record for Aaron's team
+    //   2. Resend          — the actual delivery of the PDF (or the seller
+    //                        acknowledgment). This used to be gated behind a
+    //                        FUB Action Plan that was never built, so live
+    //                        leads never received the guide — hence Scott
+    //                        Himelstein reporting he never got it on
+    //                        2026-08-19. Both writes are fire-and-forget
+    //                        relative to each other: if FUB fails, we still
+    //                        email the guide; if Resend fails, FUB still has
+    //                        the lead. Both failures trigger an internal
+    //                        alert so no lead ever vanishes silently.
+    const [fubResult, deliveryResult] = await Promise.all([
+      createFUBContact({
+        firstName,
+        lastName,
+        email,
+        phone,
+        source,
+        tags,
+        note,
+      }),
+      leadType === "seller"
+        ? sendSellerEmail({ firstName, email, propertyLocation })
+        : sendGuideEmail({ firstName, email }),
+    ]);
 
     if (!fubResult.success && !fubResult.skipped) {
       console.error("[submit] FUB failed:", fubResult.error);
-      // FUB is now the only delivery path, so a failure here means the lead
-      // gets nothing. Alert the team out-of-band so it can be entered by hand.
       await sendLeadAlertEmail({
         leadType,
         firstName,
@@ -145,9 +150,25 @@ export async function POST(request: Request) {
       });
     }
 
+    if (!deliveryResult.success && !deliveryResult.skipped) {
+      console.error("[submit] delivery email failed:", deliveryResult.error);
+      // The success page's direct-download link is the last-line safety net
+      // — but flag it so Aaron can follow up by hand.
+      await sendLeadAlertEmail({
+        leadType,
+        firstName,
+        lastName,
+        email,
+        phone,
+        detail: `Delivery email failed. Reason: ${deliveryResult.error || "unknown"}. Send the guide by hand.`,
+        error: deliveryResult.error || "unknown",
+      });
+    }
+
     return NextResponse.json({
       success: true,
       contactId: fubResult.contactId,
+      emailSent: deliveryResult.success && !deliveryResult.skipped,
     });
   } catch (error) {
     console.error("[submit] error:", error);
