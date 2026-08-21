@@ -34,12 +34,14 @@ export default function Results({
           Every match below shows <strong>why it fits</strong> and — just as importantly —{" "}
           <strong>what you'd be trading away</strong>. That second part is what most buyers only find out after they've closed.
         </p>
-        {/* No email promise here until the "Cabo Quiz" Action Plan exists in
-            Follow Up Boss — promising an inbox delivery that never arrives is
-            exactly how the guide funnel lost trust. */}
+        {/* Safe to promise the inbox now: the "Cabo Quiz" tag fires the
+            "Cabo Quiz Nurture" Action Plan in Follow Up Boss, whose first step
+            sends immediately. Note we promise the GUIDE, not "a copy of your
+            shortlist" — FUB templates are static and can't list their matches. */}
         <p className="text-xs text-text-muted mt-3">
-          Worth bookmarking this page. One of our Ronival agents will follow up with what&apos;s
-          actually on the market in these communities.
+          Worth bookmarking this page. We&apos;ve also emailed you our 33-page buying guide to go
+          with it, and one of our Ronival agents will follow up with what&apos;s actually on the
+          market in these communities.
         </p>
       </div>
 
