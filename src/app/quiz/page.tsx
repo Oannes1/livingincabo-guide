@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import QuizFlow from "@/components/quiz/QuizFlow";
 import { COMMUNITIES } from "@/data/quiz-communities";
+import { DEVELOPMENTS } from "@/data/quiz-developments";
 
 export const metadata: Metadata = {
   // absolute: this subdomain is its own product, so bypass the guide title template
   title: { absolute: "Which Cabo Neighborhood Fits You? | Living In Cabo" },
   description:
-    "Answer 6 quick questions and get a ranked shortlist of Los Cabos communities matched to your budget, setting and dealbreakers — plus the honest tradeoffs most buyers only discover after they move in.",
+    "Answer 8 questions and get an AI-analysed shortlist of Los Cabos communities and developments — matched to your budget, build stage and dealbreakers, with the honest tradeoffs most buyers only discover after they move in.",
   alternates: { canonical: "https://quiz.livingincabo.com" },
 };
 
@@ -29,9 +30,9 @@ export default function QuizPage() {
           </h1>
 
           <p className="text-lg md:text-xl text-white/80 font-light leading-relaxed mb-10 max-w-2xl mx-auto">
-            Answer six quick questions and get a ranked shortlist of Los Cabos communities matched to your
-            budget, setting, and dealbreakers — plus the local tradeoffs most buyers only discover after
-            they&apos;ve already bought.
+            Eight questions. We score all 40 Los Cabos communities and 82 developments against your
+            answers, then Claude reads the shortlist and tells you — honestly — which ones fit, what
+            you&apos;d be trading away, and where your answers contradict each other.
           </p>
 
           <QuizFlow />
@@ -39,9 +40,11 @@ export default function QuizPage() {
           <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-4 pt-12 mt-12 border-t border-white/10">
             <Stat n="40" l="Communities scored" />
             <Divider />
-            <Stat n="5" l="Regions covered" />
+            <Stat n={String(DEVELOPMENTS.length)} l="Developments tracked" />
             <Divider />
-            <Stat n="60s" l="To your shortlist" />
+            <Stat n="33" l="Pre-construction now" />
+            <Divider />
+            <Stat n="90s" l="To your shortlist" />
           </div>
         </div>
       </section>
@@ -51,10 +54,10 @@ export default function QuizPage() {
           <div className="grid md:grid-cols-3 gap-6">
             <Card n="01" t="A real match engine, not a personality quiz"
               b="Your dealbreakers are protected first, then budget, setting, vibe and property type are weighted together — the same way we'd shortlist for a client in person." />
-            <Card n="02" t="Scored against real community data"
-              b="Every match runs against our own enriched records for 40 Los Cabos communities: real price bands, swim safety, airport times, security reality, and rental performance." />
-            <Card n="03" t="The tradeoffs, not just the highlights"
-              b="Each match tells you what you'd be giving up — the beach that isn't swimmable, the 50-minute airport run, the community you'll need a car to live in." />
+            <Card n="02" t="Scored against real community and project data"
+              b="40 enriched community records — real price bands, swim safety, airport times, rental performance — plus 82 actual developments with their developer, build stage, delivery date and HOA dues." />
+            <Card n="03" t="A live read, not a canned result"
+              b="Claude analyses your specific answers against the shortlist every time — naming the tradeoffs, the thing to verify before you offer, and any place your own answers pull against each other." />
           </div>
         </div>
       </section>
@@ -67,7 +70,7 @@ export default function QuizPage() {
               <p className="label-caps text-sand-gold-dark">Coverage</p>
             </div>
             <h2 className="heading-display text-3xl md:text-4xl text-cabo-navy leading-tight">
-              Matched across <span className="heading-editorial italic text-sand-gold-dark">40 communities</span> in Los Cabos
+              Matched across <span className="heading-editorial italic text-sand-gold-dark">40 communities</span> and 82 developments
             </h2>
             <p className="text-cabo-slate mt-4 text-lg">
               From downtown Cabo San Lucas to the East Cape and the Pacific side — every match is scored against

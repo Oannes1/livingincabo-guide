@@ -16,6 +16,11 @@ export interface Answers {
   homeType?: string;     // condo | villa | estate | land | branded
   mustHaves?: string[];  // gated swimmable walkable golf rental newBuild airport medical
   timeline?: string;
+  // ── added for the deeper build ──
+  buildStage?: string;   // presale | underConstruction | ready | any
+  hoaTolerance?: string; // low | medium | high | dontcare
+  amenities?: string[];  // branded spa golf marina concierge family pool gym
+  ownership?: string;    // fideicomiso | corporation | unsure
 }
 
 export interface Scored {
@@ -154,3 +159,88 @@ export function inPlayCount(a: Answers): number {
 }
 
 export const MUST_HAVES = MUST_HAVE_LABEL;
+
+/* ------------------------------------------------------------------ */
+/*  Development matching                                               */
+/*  Communities answer "where"; developments answer "which building".  */
+/*  A buyer who wants pre-construction with a concierge and a branded  */
+/*  operator is really shopping developments, not neighbourhoods.      */
+/* ------------------------------------------------------------------ */
+
+import { DEVELOPMENTS, type QuizDevelopment } from "@/data/quiz-developments";
+
+export interface ScoredDev {
+  d: QuizDevelopment;
+  score: number;
+  reasons: string[];
+}
+
+function devBudget(d: QuizDevelopment, min?: number, max?: number) {
+  if (min == null || max == null) return 1;
+  const [lo, hi] = d.price;
+  if (hi < min * 0.85) return 0;
+  if (lo > max * 1.15) return 0;
+  const overlap = Math.min(hi, max) - Math.max(lo, min);
+  return clamp(overlap / Math.max(1, max - min), 0.25, 1);
+}
+
+const STAGE_FIT = (d: QuizDevelopment, want?: string) => {
+  switch (want) {
+    case "presale": return d.status === "Pre-Sale" ? 1 : d.status === "Under Construction" ? 0.8 : 0.15;
+    case "underConstruction": return d.status === "Under Construction" ? 1 : d.status === "Pre-Sale" ? 0.7 : 0.2;
+    case "ready": return d.attrs.moveInReady ? 1 : 0.15;
+    default: return 0.6;
+  }
+};
+
+/** HOA tolerance, in USD/month. Unknown dues are neutral, never penalised. */
+const HOA_FIT = (d: QuizDevelopment, want?: string) => {
+  if (!want || want === "dontcare" || d.hoaMid == null) return 0.6;
+  const m = d.hoaMid;
+  if (want === "low") return m <= 500 ? 1 : m <= 900 ? 0.5 : 0.1;
+  if (want === "medium") return m <= 1200 ? 1 : 0.4;
+  return 1; // "high" — dues aren't a constraint
+};
+
+const AMENITY_KEYS = ["branded", "spa", "golf", "marina", "concierge", "family", "pool", "gym"] as const;
+
+export function matchDevelopments(a: Answers, communitySlugs: string[] = []): ScoredDev[] {
+  const wanted = (a.amenities ?? []).filter((x) => (AMENITY_KEYS as readonly string[]).includes(x));
+
+  return DEVELOPMENTS.map((d) => {
+    const budget = devBudget(d, a.budgetMin, a.budgetMax);
+    const stage = STAGE_FIT(d, a.buildStage);
+    const hoa = HOA_FIT(d, a.hoaTolerance);
+    const amenityHits = wanted.filter((k) => d.attrs[k]);
+    const amenity = wanted.length ? amenityHits.length / wanted.length : 0.6;
+    // Sits inside a community the engine already liked → strong signal.
+    const inMatchedCommunity = communitySlugs.includes(d.community) ? 1 : 0.35;
+
+    const raw =
+      budget * 30 + stage * 20 + amenity * 20 + inMatchedCommunity * 18 + hoa * 12;
+    const score = budget === 0 ? 0 : Math.min(98, clamp(Math.round(raw)));
+
+    const reasons: string[] = [];
+    if (budget >= 0.75) reasons.push("Priced inside your range");
+    if (a.buildStage && stage >= 0.9) reasons.push(`${d.status} — the stage you asked for`);
+    if (d.delivery) reasons.push(`Delivery: ${d.delivery}`);
+    if (d.developer) reasons.push(`Developer: ${d.developer}`);
+    amenityHits.forEach((k) => reasons.push(AMENITY_LABEL[k] ?? k));
+    if (d.hoa) reasons.push(`HOA ${d.hoa}`);
+
+    return { d, score, reasons: reasons.slice(0, 5) };
+  })
+    .filter((s) => s.score > 0)
+    .sort((x, y) => y.score - x.score);
+}
+
+export const AMENITY_LABEL: Record<string, string> = {
+  branded: "Branded resort operator",
+  spa: "Spa / wellness on site",
+  golf: "Golf on site",
+  marina: "Marina access",
+  concierge: "Concierge & rental program",
+  family: "Family / kids facilities",
+  pool: "Pools",
+  gym: "Fitness center",
+};

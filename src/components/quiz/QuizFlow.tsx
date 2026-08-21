@@ -4,7 +4,7 @@ import { useMemo, useRef, useState } from "react";
 import RouteRail from "./RouteRail";
 import SpamFields, { type SpamFieldsRef } from "../SpamFields";
 import { matchCommunities, inPlayCount, type Answers } from "@/lib/match";
-import Results from "./Results";
+import Results, { type AiBrief } from "./Results";
 
 const money = (n: number) =>
   n >= 1_000_000 ? `$${(n / 1_000_000).toFixed(n % 1_000_000 === 0 ? 0 : 1)}M` : `$${Math.round(n / 1000)}K`;
@@ -61,6 +61,31 @@ const Q = {
   },
 } as const;
 
+const BUILD_STAGE: Opt[] = [
+  { value: "presale", icon: "📐", label: "Pre-construction", sub: "Best pricing and unit choice, you wait for it" },
+  { value: "underConstruction", icon: "🏗️", label: "Under construction", sub: "Going up now, delivery in sight" },
+  { value: "ready", icon: "🔑", label: "Move-in ready", sub: "Walk it, buy it, use it this season" },
+  { value: "any", icon: "🤷", label: "Open to any of it", sub: "Show me the best fit regardless" },
+];
+
+const HOA: Opt[] = [
+  { value: "low", label: "Keep it lean — under ~$500/mo" },
+  { value: "medium", label: "Mid — up to ~$1,200/mo is fine" },
+  { value: "high", label: "Don't care — I want the services" },
+  { value: "dontcare", label: "Not sure yet" },
+];
+
+const AMENITIES: Opt[] = [
+  { value: "branded", icon: "🛎️", label: "Branded operator (Four Seasons, Aman, St. Regis…)" },
+  { value: "spa", icon: "💆", label: "Spa and wellness on site" },
+  { value: "golf", icon: "⛳", label: "Golf on site" },
+  { value: "marina", icon: "🛥️", label: "Marina access" },
+  { value: "concierge", icon: "🧾", label: "Concierge and a rental program" },
+  { value: "family", icon: "👨‍👩‍👧", label: "Kids and family facilities" },
+  { value: "pool", icon: "🏊", label: "Serious pool situation" },
+  { value: "gym", icon: "🏋️", label: "Real fitness center" },
+];
+
 const MUSTS: Opt[] = [
   { value: "gated", icon: "🔒", label: "Gated with real security" },
   { value: "swimmable", icon: "🏊", label: "A genuinely swimmable beach" },
@@ -97,6 +122,8 @@ export default function QuizFlow() {
   const [err, setErr] = useState("");
   const [unlocked, setUnlocked] = useState(false);
   const [firstName, setFirstName] = useState("");
+  const [brief, setBrief] = useState<AiBrief | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
 
   const ranked = useMemo(() => matchCommunities(a), [a]);
   const inPlay = useMemo(() => inPlayCount(a), [a]);
@@ -106,6 +133,11 @@ export default function QuizFlow() {
   /* Functional updater: two fast clicks must not compute from stale state,
      otherwise a dealbreaker silently disappears — and dealbreakers carry the
      heaviest weight in the match. */
+  const toggleAmenity = (v: string) =>
+    setA((p) => {
+      const cur = p.amenities ?? [];
+      return { ...p, amenities: cur.includes(v) ? cur.filter((x) => x !== v) : [...cur, v] };
+    });
   const toggleMust = (v: string) =>
     setA((p) => {
       const cur = p.mustHaves ?? [];
@@ -205,7 +237,20 @@ export default function QuizFlow() {
       if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || "Something went wrong.");
       setFirstName(name.split(" ")[0]);
       setUnlocked(true);
-      setStep(7);
+      setStep(9);
+
+      // Live AI brief. Runs after unlock so the buyer sees results immediately
+      // and the analysis fills in; a failure here never blocks the results.
+      setAiLoading(true);
+      fetch("/api/ai-brief", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ answers: { ...a, timeline: String(fd.get("timeline") || "") } }),
+      })
+        .then((r) => r.json())
+        .then((j) => { if (j?.ok && j.brief) setBrief(j.brief as AiBrief); })
+        .catch(() => {})
+        .finally(() => setAiLoading(false));
     } catch (e2) {
       setErr(e2 instanceof Error ? e2.message : "Something went wrong.");
     } finally {
@@ -249,6 +294,75 @@ export default function QuizFlow() {
 
         {step === 5 && (
           <div className={card}>
+            <Header stop="Stage" title="New build, or something you can use this season?"
+              hint="This is the single biggest fork in Cabo right now — 33 of the projects we track are still pre-construction." />
+            <div className="grid gap-3">
+              {BUILD_STAGE.map((o) => (
+                <button key={o.value} onClick={() => set({ buildStage: o.value })}
+                  className={`${optBtn} ${a.buildStage === o.value ? "border-ocean-teal bg-ocean-teal/10" : ""}`}>
+                  <span className="text-2xl leading-none mt-0.5">{o.icon}</span>
+                  <span>
+                    <span className="block font-semibold text-cabo-navy">{o.label}</span>
+                    {o.sub && <span className="block text-sm text-cabo-slate mt-0.5">{o.sub}</span>}
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            <p className="label-caps text-sand-gold-dark mt-7 mb-3 text-[11px]">And the monthly carry?</p>
+            <div className="grid sm:grid-cols-2 gap-2">
+              {HOA.map((o) => (
+                <button key={o.value} onClick={() => set({ hoaTolerance: o.value })}
+                  className={`text-left border rounded-md px-4 py-3 text-sm transition-colors ${
+                    a.hoaTolerance === o.value ? "border-ocean-teal bg-ocean-teal/10 text-cabo-navy font-medium" : "border-stone hover:border-sand-gold text-cabo-slate"
+                  }`}>
+                  {o.label}
+                </button>
+              ))}
+            </div>
+
+            <MatchCheck />
+            <div className="flex items-center gap-3 mt-6">
+              <button onClick={() => setStep(4)} className="text-sm text-text-muted hover:text-cabo-navy">← Back</button>
+              <button onClick={next} disabled={!a.buildStage}
+                className="ml-auto bg-cabo-navy hover:bg-cabo-navy-deep text-white font-semibold px-7 py-3 rounded-md transition-colors disabled:opacity-40">
+                Continue →
+              </button>
+            </div>
+          </div>
+        )}
+
+        {step === 6 && (
+          <div className={card}>
+            <Header stop="Amenities" title="What do you actually want on site?"
+              hint="Pick what you'd genuinely use. This is matched against 82 real Los Cabos developments." />
+            <div className="grid sm:grid-cols-2 gap-3">
+              {AMENITIES.map((m) => {
+                const on = (a.amenities ?? []).includes(m.value);
+                return (
+                  <button key={m.value} onClick={() => toggleAmenity(m.value)}
+                    className={`text-left border rounded-md px-4 py-3 flex items-center gap-3 transition-colors ${
+                      on ? "border-ocean-teal bg-ocean-teal/10" : "border-stone hover:border-sand-gold"
+                    }`}>
+                    <span className="text-xl">{m.icon}</span>
+                    <span className="font-medium text-cabo-navy text-sm">{m.label}</span>
+                    {on && <span className="ml-auto text-ocean-teal font-bold">✓</span>}
+                  </button>
+                );
+              })}
+            </div>
+            <MatchCheck />
+            <div className="flex items-center gap-3 mt-6">
+              <button onClick={() => setStep(5)} className="text-sm text-text-muted hover:text-cabo-navy">← Back</button>
+              <button onClick={next} className="ml-auto bg-cabo-navy hover:bg-cabo-navy-deep text-white font-semibold px-7 py-3 rounded-md transition-colors">
+                Continue →
+              </button>
+            </div>
+          </div>
+        )}
+
+        {step === 7 && (
+          <div className={card}>
             <Header stop="Must-Haves" title="What are your actual dealbreakers?" hint="Pick as many as truly matter. These get weighted hardest — we protect them first." />
             <div className="grid sm:grid-cols-2 gap-3">
               {MUSTS.map((m) => {
@@ -270,7 +384,7 @@ export default function QuizFlow() {
             </div>
             <MatchCheck />
             <div className="flex items-center gap-3 mt-6">
-              <button onClick={() => setStep(4)} className="text-sm text-text-muted hover:text-cabo-navy">← Back</button>
+              <button onClick={() => setStep(6)} className="text-sm text-text-muted hover:text-cabo-navy">← Back</button>
               <button
                 onClick={next}
                 className="ml-auto bg-cabo-navy hover:bg-cabo-navy-deep text-white font-semibold px-7 py-3 rounded-md transition-colors"
@@ -282,7 +396,7 @@ export default function QuizFlow() {
         )}
 
         {/* ---------- THE CLOSER: tease #1, gate the rest ---------- */}
-        {step === 6 && (
+        {step === 8 && (
           <div className={card}>
             <p className="label-caps text-sand-gold-dark mb-2">The Closer</p>
             <h2 className="heading-display text-2xl md:text-3xl text-cabo-navy leading-snug mb-1">
@@ -354,11 +468,13 @@ export default function QuizFlow() {
               <p className="text-xs text-text-muted text-center mt-3">No spam. Unsubscribe anytime.</p>
             </form>
 
-            <button onClick={() => setStep(5)} className="mt-5 text-sm text-text-muted hover:text-cabo-navy">← Back</button>
+            <button onClick={() => setStep(7)} className="mt-5 text-sm text-text-muted hover:text-cabo-navy">← Back</button>
           </div>
         )}
 
-        {step >= 7 && unlocked && <Results ranked={ranked} answers={a} firstName={firstName} />}
+        {step >= 9 && unlocked && (
+          <Results ranked={ranked} answers={a} firstName={firstName} brief={brief} aiLoading={aiLoading} />
+        )}
       </div>
     </div>
   );

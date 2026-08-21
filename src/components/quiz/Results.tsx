@@ -3,6 +3,16 @@
 import { useState } from "react";
 import type { Scored } from "@/lib/match";
 import type { Answers } from "@/lib/match";
+import { matchDevelopments } from "@/lib/match";
+
+export interface AiBrief {
+  headline: string;
+  readMe: string;
+  ranked: { slug: string; why: string[]; tradeoff: string; watchOut: string }[];
+  developments: { slug: string; why: string }[];
+  tension: string;
+  nextStep: string;
+}
 
 const money = (n: number) =>
   n >= 1_000_000 ? `$${(n / 1_000_000).toFixed(n % 1_000_000 === 0 ? 0 : 1)}M` : `$${Math.round(n / 1000)}K`;
@@ -15,8 +25,13 @@ const BEACH_LABEL: Record<string, string> = {
 };
 
 export default function Results({
-  ranked, answers, firstName,
-}: { ranked: Scored[]; answers: Answers; firstName: string }) {
+  ranked, answers, firstName, brief, aiLoading,
+}: {
+  ranked: Scored[]; answers: Answers; firstName: string;
+  brief?: AiBrief | null; aiLoading?: boolean;
+}) {
+  const devs = matchDevelopments(answers, ranked.slice(0, 10).map((r) => r.c.slug)).slice(0, 4);
+  const aiFor = (slug: string) => brief?.ranked.find((r) => r.slug === slug);
   const [open, setOpen] = useState<string | null>(ranked[0]?.c.slug ?? null);
   const top5 = ranked.slice(0, 5);
   const honorable = ranked.slice(5, 12);
@@ -44,6 +59,40 @@ export default function Results({
           market in these communities.
         </p>
       </div>
+
+      {/* live AI brief */}
+      {aiLoading && !brief && (
+        <div className="bg-white rounded-md shadow-lg p-6 flex items-center gap-3">
+          <span className="w-4 h-4 rounded-full border-2 border-sand-gold border-t-transparent animate-spin" />
+          <p className="text-cabo-slate text-sm">
+            Reading your answers against all 40 communities and 82 developments…
+          </p>
+        </div>
+      )}
+
+      {brief && (
+        <div className="bg-cabo-navy bg-grain rounded-md p-7 md:p-9">
+          <p className="label-caps text-sand-gold text-[10px] mb-3">Your analysis</p>
+          <p className="heading-editorial text-xl md:text-2xl text-white italic leading-relaxed mb-4">
+            {brief.headline}
+          </p>
+          <p className="text-white/80 leading-relaxed">{brief.readMe}</p>
+
+          {brief.tension && (
+            <div className="mt-5 bg-sunset-coral/15 border-l-4 border-sunset-coral rounded p-4">
+              <p className="label-caps text-sunset-coral text-[10px] mb-1">Worth resolving</p>
+              <p className="text-white/90 text-sm leading-relaxed">{brief.tension}</p>
+            </div>
+          )}
+
+          {brief.nextStep && (
+            <div className="mt-5 pt-5 border-t border-white/10">
+              <p className="label-caps text-sand-gold text-[10px] mb-1">Do this next</p>
+              <p className="text-white/90 text-sm leading-relaxed">{brief.nextStep}</p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ranked matches */}
       {top5.map((m, i) => {
@@ -79,6 +128,17 @@ export default function Results({
 
             {isOpen && (
               <div className="px-6 pb-6 pt-1 border-t border-divider grid md:grid-cols-2 gap-6">
+                {aiFor(m.c.slug) && (
+                  <div className="md:col-span-2 bg-cream border-l-4 border-cabo-navy rounded-md p-4">
+                    <p className="label-caps text-cabo-navy text-[10px] mb-2">Read on this one</p>
+                    <ul className="space-y-1.5 mb-3">
+                      {aiFor(m.c.slug)!.why.map((w, i) => (
+                        <li key={i} className="text-sm text-cabo-slate flex gap-2"><span className="text-cabo-navy">→</span>{w}</li>
+                      ))}
+                    </ul>
+                    <p className="text-sm text-cabo-slate"><strong>Watch out:</strong> {aiFor(m.c.slug)!.watchOut}</p>
+                  </div>
+                )}
                 <div>
                   <p className="label-caps text-ocean-teal text-[10px] mb-3">Why it matched</p>
                   <ul className="space-y-2">
@@ -128,6 +188,43 @@ export default function Results({
           </div>
         );
       })}
+
+      {/* matched developments */}
+      {devs.length > 0 && (
+        <div className="bg-white rounded-md shadow-lg p-7">
+          <p className="label-caps text-sand-gold-dark mb-1">Specific projects worth a look</p>
+          <p className="text-cabo-slate text-sm mb-5">
+            Actual developments inside your matched areas — including what stage they&apos;re at and who&apos;s building them.
+          </p>
+          <div className="space-y-3">
+            {devs.map((s2) => {
+              const ai = brief?.developments.find((x) => x.slug === s2.d.slug);
+              return (
+                <div key={s2.d.slug} className="border border-stone rounded-md p-5">
+                  <div className="flex items-start justify-between gap-4 flex-wrap">
+                    <div className="min-w-0">
+                      <p className="heading-display text-lg text-cabo-navy">{s2.d.name}</p>
+                      <p className="text-cabo-slate text-sm mt-0.5">{s2.d.tagline}</p>
+                    </div>
+                    <span className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded flex-shrink-0 ${
+                      s2.d.attrs.preConstruction ? "bg-ocean-teal text-white" : "bg-cream text-cabo-slate border border-divider"
+                    }`}>
+                      {s2.d.status}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    <Tag>{money(s2.d.price[0])} – {money(s2.d.price[1])}</Tag>
+                    {s2.d.delivery && <Tag>Delivery {s2.d.delivery}</Tag>}
+                    {s2.d.developer && <Tag>{s2.d.developer}</Tag>}
+                    {s2.d.hoa && <Tag>HOA {s2.d.hoa}</Tag>}
+                  </div>
+                  {ai && <p className="text-sm text-cabo-slate mt-3 italic">{ai.why}</p>}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* honorable mentions */}
       {honorable.length > 0 && (

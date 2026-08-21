@@ -1,7 +1,8 @@
 "use client";
 
 const STOPS = [
-  "Why Cabo", "Budget", "Setting", "Vibe", "Home", "Must-Haves", "The Closer", "Your Matches",
+  "Why Cabo", "Budget", "Setting", "Vibe", "Home",
+  "Stage", "Amenities", "Must-Haves", "The Closer", "Your Matches",
 ];
 
 export default function RouteRail({ step }: { step: number }) {
