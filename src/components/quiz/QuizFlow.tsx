@@ -154,12 +154,12 @@ export default function QuizFlow() {
           onClick={() => setStarted(true)}
           className="inline-flex items-center gap-2 bg-sand-gold hover:bg-sand-gold-dark text-cabo-navy font-semibold px-10 py-5 rounded-md transition-colors shadow-xl text-lg"
         >
-          Start the Quiz — 60 Seconds
+          Start the Quiz — 90 Seconds
           <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
           </svg>
         </button>
-        <p className="text-white/60 text-sm mt-4">Free · No account · Your matches in about a minute</p>
+        <p className="text-white/60 text-sm mt-4">Free · No account · 8 questions, then your AI-analysed shortlist</p>
       </div>
     );
   }
