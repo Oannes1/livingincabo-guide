@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { checkForSpam } from "@/lib/spam-protection";
 import { createFUBContact } from "@/lib/fub";
-import { sendLeadAlertEmail } from "@/lib/email";
+import { sendLeadAlertEmail, sendGuideEmail, sendAgentNewLead } from "@/lib/email";
 import { signBrief } from "@/lib/brief-token";
 
 const LABEL: Record<string, Record<string, string>> = {
@@ -37,6 +37,16 @@ const LABEL: Record<string, Record<string, string>> = {
     "6-12": "6–12 months",
     "12plus": "1–2 years",
     dreaming: "Just exploring",
+  },
+  whyNow: {
+    winters: "Somewhere warm for the winters",
+    stretch: "Money goes further than at home",
+    family: "People they know already moved down",
+    "use-it": "Wants somewhere they'd actually use",
+    lifestyle: "The lifestyle — water, golf, outdoors",
+    income: "It has to earn while empty",
+    youtube: "Came from the YouTube videos",
+    curious: "Curious what their money buys",
   },
   mustHaves: {
     gated: "Gated security",
@@ -85,6 +95,11 @@ export async function POST(request: Request) {
       );
     }
 
+    /* A guide request is a lighter lead than a completed quiz: one community,
+       no answers. It still goes through the same pipeline so nothing is lost. */
+    const isGuide = String(body.leadType || "") === "neighborhood-guide";
+    const guideName = String((body.matches?.[0]?.name) || "").trim() || "Los Cabos";
+
     const at = new Date().toISOString();
     const L = (k: string, v: unknown) => LABEL[k]?.[String(v)] || String(v ?? "n/a");
     const musts = Array.isArray(quiz.mustHaves) ? (quiz.mustHaves as string[]) : [];
@@ -109,6 +124,7 @@ export async function POST(request: Request) {
       `  Home type ...... ${L("homeType", quiz.homeType)}`,
       `  Dealbreakers ... ${musts.length ? musts.map((m) => LABEL.mustHaves[m] || m).join(", ") : "none given"}`,
       `  Timeline ....... ${L("timeline", quiz.timeline)}`,
+      `  Why now ........ ${L("whyNow", quiz.whyNow)}`,
       `  Phone .......... ${phone || "not provided"}`,
       ``,
       `AGENT LEAD BRIEF (private link — how to open the call, why each match fit,`,
@@ -118,15 +134,48 @@ export async function POST(request: Request) {
       .filter(Boolean)
       .join("\n");
 
-    const fub = await createFUBContact({
-      firstName,
-      lastName,
-      email,
-      phone,
-      source: "Cabo Neighborhood Match Quiz",
-      tags: ["Lead Magnet", "Cabo Quiz", "quiz.livingincabo.com"],
-      note,
+    // Write the lead to FUB and send the guide email in parallel — the same
+    // shape /api/submit uses. The results page promises the buyer an email,
+    // so this route has to actually send one. Leaning on a FUB tag to fire an
+    // Action Plan is exactly what silently dropped every guide lead before
+    // 87400eb; don't reintroduce it here.
+    //
+    // Independent failure paths: if FUB errors the guide still goes out, if
+    // Resend errors FUB still has the lead, and either failure alerts so a
+    // broken send never vanishes silently.
+    const [fub, delivery] = await Promise.all([
+      createFUBContact({
+        firstName,
+        lastName,
+        email,
+        phone,
+        source: isGuide
+          ? `Neighborhood Guide — ${guideName}`
+          : "Cabo Neighborhood Match Quiz",
+        /* Tagged apart so Follow Up Boss can tell a guide request from a
+           finished quiz. They are different intents: one asked about a
+           specific place, the other doesn't know where they want to be. */
+        tags: isGuide
+          ? ["Lead Magnet", "Neighborhood Guide", guideName, "quiz.livingincabo.com"]
+          : ["Lead Magnet", "Cabo Quiz", "quiz.livingincabo.com"],
+        note,
+      }),
+      sendGuideEmail({ firstName, email }),
+    ]);
+
+    /* Tell Aaron a lead landed. This is the happy path, which previously
+       notified nobody — the only agent mail was the FUB-failure alert. */
+    const agent = await sendAgentNewLead({
+      firstName, lastName, email, phone,
+      topMatch: top?.name, topScore: top?.score,
+      timeline: L("timeline", quiz.timeline),
+      whyNow: L("whyNow", quiz.whyNow),
+      budget: `${money(quiz.budgetMin as number)} – ${money(quiz.budgetMax as number)}`,
+      briefUrl,
     });
+    if (!agent.success && !agent.skipped) {
+      console.error("[quiz] agent alert failed:", agent.error);
+    }
 
     if (!fub.success && !fub.skipped) {
       console.error("[quiz] FUB failed:", fub.error);
@@ -138,6 +187,19 @@ export async function POST(request: Request) {
         phone,
         detail: note,
         error: fub.error || "unknown",
+      });
+    }
+
+    if (!delivery.success && !delivery.skipped) {
+      console.error("[quiz] guide email failed:", delivery.error);
+      await sendLeadAlertEmail({
+        leadType: "quiz — guide email FAILED to send",
+        firstName,
+        lastName,
+        email,
+        phone,
+        detail: note,
+        error: delivery.error || "unknown",
       });
     }
 

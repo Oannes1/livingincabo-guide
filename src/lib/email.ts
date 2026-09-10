@@ -72,7 +72,8 @@ export async function sendGuideEmail(
   }
 }
 
-function buildGuideEmail(firstName: string): { html: string; text: string } {
+/** Exported so the email can be rendered and reviewed without sending one. */
+export function buildGuideEmail(firstName: string): { html: string; text: string } {
   const text = `Hi ${firstName},
 
 Your copy of "Buying Property in Mexico — The Complete Guide" is ready.
@@ -391,5 +392,99 @@ FUB error: ${params.error}
   } catch (err) {
     console.error("[email] alert send failed:", err);
     return { success: false, error: "Failed to send alert email" };
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/*  New-lead notification to the agent                                 */
+/*                                                                     */
+/*  Until now the only mail Aaron received was sendLeadAlertEmail,     */
+/*  which fires when Follow Up Boss REJECTS a lead. On the happy path  */
+/*  — the overwhelming majority — nothing reached him at all, and he   */
+/*  found out by logging into FUB. This is the missing half.           */
+/*                                                                     */
+/*  Written to be read on a phone in under five seconds: who, what     */
+/*  they want, the single strongest match, and one link.               */
+/* ------------------------------------------------------------------ */
+
+export interface AgentAlertParams {
+  firstName: string;
+  lastName?: string;
+  email: string;
+  phone?: string;
+  topMatch?: string;
+  topScore?: number;
+  timeline?: string;
+  whyNow?: string;
+  budget?: string;
+  briefUrl: string;
+}
+
+export async function sendAgentNewLead(
+  p: AgentAlertParams
+): Promise<SendGuideEmailResult> {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    console.warn("[email] No RESEND_API_KEY — agent not notified of new lead");
+    return { success: true, skipped: true };
+  }
+
+  const to = process.env.ALERT_EMAIL || process.env.EMAIL_REPLY_TO || "ac@aaroncuha.com";
+  const from = process.env.EMAIL_FROM || "Living In Cabo <onboarding@resend.dev>";
+  const name = `${p.firstName} ${p.lastName || ""}`.trim();
+  const match = p.topMatch ? `${p.topMatch}${p.topScore ? ` · ${p.topScore}%` : ""}` : "no strong match";
+
+  const rows: [string, string][] = [
+    ["Top match", match],
+    ["Timeline", p.timeline || "not given"],
+    ["Why now", p.whyNow || "not given"],
+    ["Budget", p.budget || "not given"],
+    ["Email", p.email],
+    ["Phone", p.phone || "not given yet"],
+  ];
+
+  const html = `<!doctype html><html><body style="margin:0;background:#F5F2ED;font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif">
+<div style="max-width:520px;margin:0 auto;padding:24px 20px">
+  <p style="margin:0 0 14px;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#A8893D">Living In Cabo · New quiz lead</p>
+  <div style="background:#0A2540;border-radius:14px;padding:22px">
+    <p style="margin:0;color:#fff;font-size:22px;font-weight:600">${name}</p>
+    <p style="margin:6px 0 0;color:rgba(255,255,255,.62);font-size:14px">wants ${match}</p>
+  </div>
+  <table style="width:100%;border-collapse:collapse;margin-top:8px">
+    ${rows
+      .map(
+        ([k, v]) =>
+          `<tr><td style="padding:11px 0;border-bottom:1px solid #E0D6CA;font-size:12px;color:#5A7491">${k}</td>
+           <td style="padding:11px 0;border-bottom:1px solid #E0D6CA;font-size:14px;color:#0A2540;text-align:right;font-weight:500">${v}</td></tr>`
+      )
+      .join("")}
+  </table>
+  <a href="${p.briefUrl}" style="display:block;margin-top:20px;background:#C9A96E;color:#0A2540;text-decoration:none;text-align:center;padding:15px;border-radius:999px;font-weight:600;font-size:15px">Open the full brief</a>
+  <p style="margin:14px 0 0;font-size:12px;color:#8BA3BD;text-align:center">Their answers, why each community matched, what to raise, and a first text you can copy.</p>
+</div></body></html>`;
+
+  const text = `NEW QUIZ LEAD — ${name}
+Wants: ${match}
+${rows.map(([k, v]) => `${k}: ${v}`).join("\n")}
+
+Full brief: ${p.briefUrl}`;
+
+  try {
+    const { data, error } = await new Resend(apiKey).emails.send({
+      from,
+      to: [to],
+      replyTo: p.email,
+      subject: `New Cabo quiz lead — ${name}${p.topMatch ? ` · ${p.topMatch}` : ""}`,
+      html,
+      text,
+      tags: [{ name: "source", value: "quiz_agent_alert" }],
+    });
+    if (error) {
+      console.error("[email] agent alert failed:", error);
+      return { success: false, error: String(error.message || error) };
+    }
+    return { success: true, id: data?.id };
+  } catch {
+    return { success: false, error: "Failed to send agent alert" };
   }
 }

@@ -1,0 +1,202 @@
+[
+ {
+  "slug": "cabo-san-lucas",
+  "name": "Downtown Cabo San Lucas",
+  "region": "Cabo San Lucas"
+ },
+ {
+  "slug": "pedregal",
+  "name": "Pedregal de Cabo San Lucas",
+  "region": "Cabo San Lucas"
+ },
+ {
+  "slug": "el-medano",
+  "name": "El Medano Beach",
+  "region": "Cabo San Lucas"
+ },
+ {
+  "slug": "diamante",
+  "name": "Diamante",
+  "region": "Cabo San Lucas"
+ },
+ {
+  "slug": "quivira",
+  "name": "Quivira Los Cabos",
+  "region": "Cabo San Lucas"
+ },
+ {
+  "slug": "marina-cabo",
+  "name": "Cabo San Lucas Marina",
+  "region": "Cabo San Lucas"
+ },
+ {
+  "slug": "el-tezal",
+  "name": "El Tezal",
+  "region": "Cabo San Lucas"
+ },
+ {
+  "slug": "palmilla",
+  "name": "Palmilla",
+  "region": "The Corridor"
+ },
+ {
+  "slug": "querencia",
+  "name": "Querencia",
+  "region": "The Corridor"
+ },
+ {
+  "slug": "puerto-los-cabos",
+  "name": "Puerto Los Cabos",
+  "region": "The Corridor"
+ },
+ {
+  "slug": "chileno-bay",
+  "name": "Chileno Bay",
+  "region": "The Corridor"
+ },
+ {
+  "slug": "cabo-del-sol",
+  "name": "Cabo del Sol",
+  "region": "The Corridor"
+ },
+ {
+  "slug": "cabo-real",
+  "name": "Cabo Real",
+  "region": "The Corridor"
+ },
+ {
+  "slug": "san-jose-del-cabo",
+  "name": "San Jose del Cabo",
+  "region": "San Jose del Cabo"
+ },
+ {
+  "slug": "la-playita",
+  "name": "La Playita",
+  "region": "San Jose del Cabo"
+ },
+ {
+  "slug": "fonatur",
+  "name": "Fonatur (Hotel Zone)",
+  "region": "San Jose del Cabo"
+ },
+ {
+  "slug": "san-jose-beach",
+  "name": "San Jose del Cabo Beach",
+  "region": "San Jose del Cabo"
+ },
+ {
+  "slug": "east-cape",
+  "name": "East Cape",
+  "region": "East Cape"
+ },
+ {
+  "slug": "los-barriles",
+  "name": "Los Barriles",
+  "region": "East Cape"
+ },
+ {
+  "slug": "costa-palmas",
+  "name": "Costa Palmas",
+  "region": "East Cape"
+ },
+ {
+  "slug": "zacatitos",
+  "name": "Zacatitos",
+  "region": "East Cape"
+ },
+ {
+  "slug": "cabo-pulmo",
+  "name": "Cabo Pulmo",
+  "region": "East Cape"
+ },
+ {
+  "slug": "cerritos-beach",
+  "name": "Cerritos Beach",
+  "region": "Pacific Side"
+ },
+ {
+  "slug": "todos-santos",
+  "name": "Todos Santos",
+  "region": "Pacific Side"
+ },
+ {
+  "slug": "el-pescadero",
+  "name": "El Pescadero",
+  "region": "Pacific Side"
+ },
+ {
+  "slug": "el-dorado",
+  "name": "El Dorado Golf & Beach Club",
+  "region": "The Corridor"
+ },
+ {
+  "slug": "maravilla",
+  "name": "Maravilla Los Cabos",
+  "region": "The Corridor"
+ },
+ {
+  "slug": "twin-dolphin",
+  "name": "Twin Dolphin",
+  "region": "The Corridor"
+ },
+ {
+  "slug": "montage-los-cabos",
+  "name": "Montage Los Cabos",
+  "region": "The Corridor"
+ },
+ {
+  "slug": "rancho-san-lucas",
+  "name": "Rancho San Lucas",
+  "region": "Cabo San Lucas"
+ },
+ {
+  "slug": "club-campestre",
+  "name": "Club Campestre San Jose del Cabo",
+  "region": "San Jose del Cabo"
+ },
+ {
+  "slug": "cabo-bello",
+  "name": "Cabo Bello",
+  "region": "The Corridor"
+ },
+ {
+  "slug": "punta-ballena",
+  "name": "Punta Ballena",
+  "region": "The Corridor"
+ },
+ {
+  "slug": "cresta-del-mar",
+  "name": "Cresta del Mar",
+  "region": "The Corridor"
+ },
+ {
+  "slug": "rancho-cerro-colorado",
+  "name": "Rancho Cerro Colorado",
+  "region": "The Corridor"
+ },
+ {
+  "slug": "rancho-paraiso",
+  "name": "Rancho Paraiso",
+  "region": "The Corridor"
+ },
+ {
+  "slug": "hacienda-beach",
+  "name": "Hacienda Beach Club & Residences",
+  "region": "Cabo San Lucas"
+ },
+ {
+  "slug": "las-ventanas",
+  "name": "Las Ventanas al Paraiso Residences",
+  "region": "The Corridor"
+ },
+ {
+  "slug": "espiritu-del-mar",
+  "name": "Espiritu del Mar",
+  "region": "San Jose del Cabo"
+ },
+ {
+  "slug": "costa-azul",
+  "name": "Costa Azul",
+  "region": "San Jose del Cabo"
+ }
+]

@@ -21,6 +21,7 @@ export interface Answers {
   hoaTolerance?: string; // low | medium | high | dontcare
   amenities?: string[];  // branded spa golf marina concierge family pool gym
   ownership?: string;    // fideicomiso | corporation | unsure
+  whyNow?: string;       // winters | stretch | family | use-it | lifestyle | income | youtube | curious
 }
 
 export interface Scored {

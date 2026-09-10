@@ -24,7 +24,18 @@ export default async function BriefPage({ params }: { params: Promise<{ token: s
   if (!b) notFound();
 
   const q = b.quiz as Answers & { timeline?: string };
-  const ranked = matchCommunities(q);
+  /* The buyer's own shortlist is signed into the token. Recomputing it here
+     meant the agent could open a brief showing different communities and
+     different scores from the ones the buyer was looking at — the worst
+     possible thing to discover mid-call. Recompute only for legacy tokens
+     that predate matches being stored. */
+  const recomputed = matchCommunities(q);
+  const ranked = b.matches?.length
+    ? b.matches
+        .map((m) => recomputed.find((r) => r.c.slug === m.slug) ?? null)
+        .filter((r): r is (typeof recomputed)[number] => r !== null)
+        .map((r, i) => ({ ...r, score: b.matches[i]?.score ?? r.score }))
+    : recomputed;
   const top = ranked[0];
   const musts = (q.mustHaves ?? []) as string[];
   const name = [b.firstName, b.lastName].filter(Boolean).join(" ");
