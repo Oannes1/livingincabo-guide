@@ -219,13 +219,17 @@ export default function Results({
                     </p>
                   </div>
                 )}
+                {/* Was an outbound link to livingincabo.com, which ended the
+                    session with no way back to the shortlist. Now it opens our
+                    own guide for the same community — same intent, stays here. */}
                 <div className="md:col-span-2">
-                  <a
-                    href={`https://livingincabo.com/communities/${m.c.slug}`}
-                    className="inline-flex items-center gap-2 text-cabo-navy font-semibold text-sm hover:text-sand-gold-dark transition-colors"
+                  <Link
+                    href={`/neighborhoods/${m.c.slug}`}
+                    className="inline-flex items-center gap-2 text-cabo-navy font-semibold text-sm hover:text-sand-gold-dark transition-colors focus:outline-none focus-visible:underline"
                   >
-                    Explore {m.c.name} →
-                  </a>
+                    Read the full {m.c.name} guide
+                    <span aria-hidden>&rarr;</span>
+                  </Link>
                 </div>
               </div>
             )}
