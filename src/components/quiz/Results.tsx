@@ -49,10 +49,12 @@ export default function Results({
           Every match below shows <strong>why it fits</strong> and — just as importantly —{" "}
           <strong>what you'd be trading away</strong>. That second part is what most buyers only find out after they've closed.
         </p>
-        {/* Safe to promise the inbox now: the "Cabo Quiz" tag fires the
-            "Cabo Quiz Nurture" Action Plan in Follow Up Boss, whose first step
-            sends immediately. Note we promise the GUIDE, not "a copy of your
-            shortlist" — FUB templates are static and can't list their matches. */}
+        {/* This promise is kept by /api/quiz-submit, which calls
+            sendGuideEmail() via Resend on every submit. Do NOT swap that back
+            to "a FUB tag fires an Action Plan" — that assumption is what
+            silently dropped every guide lead until 87400eb. We promise the
+            GUIDE, not "a copy of your shortlist", because the email template
+            is static and can't list their matches. */}
         <p className="text-xs text-text-muted mt-3">
           Worth bookmarking this page. We&apos;ve also emailed you our 33-page buying guide to go
           with it, and one of our Ronival agents will follow up with what&apos;s actually on the

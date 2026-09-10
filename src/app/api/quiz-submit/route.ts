@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { checkForSpam } from "@/lib/spam-protection";
 import { createFUBContact } from "@/lib/fub";
-import { sendLeadAlertEmail } from "@/lib/email";
+import { sendLeadAlertEmail, sendGuideEmail } from "@/lib/email";
 import { signBrief } from "@/lib/brief-token";
 
 const LABEL: Record<string, Record<string, string>> = {
@@ -118,15 +118,27 @@ export async function POST(request: Request) {
       .filter(Boolean)
       .join("\n");
 
-    const fub = await createFUBContact({
-      firstName,
-      lastName,
-      email,
-      phone,
-      source: "Cabo Neighborhood Match Quiz",
-      tags: ["Lead Magnet", "Cabo Quiz", "quiz.livingincabo.com"],
-      note,
-    });
+    // Write the lead to FUB and send the guide email in parallel — the same
+    // shape /api/submit uses. The results page promises the buyer an email,
+    // so this route has to actually send one. Leaning on a FUB tag to fire an
+    // Action Plan is exactly what silently dropped every guide lead before
+    // 87400eb; don't reintroduce it here.
+    //
+    // Independent failure paths: if FUB errors the guide still goes out, if
+    // Resend errors FUB still has the lead, and either failure alerts so a
+    // broken send never vanishes silently.
+    const [fub, delivery] = await Promise.all([
+      createFUBContact({
+        firstName,
+        lastName,
+        email,
+        phone,
+        source: "Cabo Neighborhood Match Quiz",
+        tags: ["Lead Magnet", "Cabo Quiz", "quiz.livingincabo.com"],
+        note,
+      }),
+      sendGuideEmail({ firstName, email }),
+    ]);
 
     if (!fub.success && !fub.skipped) {
       console.error("[quiz] FUB failed:", fub.error);
@@ -138,6 +150,19 @@ export async function POST(request: Request) {
         phone,
         detail: note,
         error: fub.error || "unknown",
+      });
+    }
+
+    if (!delivery.success && !delivery.skipped) {
+      console.error("[quiz] guide email failed:", delivery.error);
+      await sendLeadAlertEmail({
+        leadType: "quiz — guide email FAILED to send",
+        firstName,
+        lastName,
+        email,
+        phone,
+        detail: note,
+        error: delivery.error || "unknown",
       });
     }
 

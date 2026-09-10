@@ -2,6 +2,13 @@
 
 import { useMemo, useRef, useState } from "react";
 import RouteRail from "./RouteRail";
+import AgentHeader from "./AgentHeader";
+import VibeCard from "./VibeCard";
+import CompanionTip, { narrowingLine } from "./CompanionTip";
+import {
+  USE_CASE_VIBES, BUDGET_VIBES, SETTING_VIBES, VIBE_VIBES, TIMELINE_VIBES,
+  budgetKey, pickVibe, type Vibe,
+} from "@/data/quiz-vibes";
 import SpamFields, { type SpamFieldsRef } from "../SpamFields";
 import { matchCommunities, inPlayCount, type Answers } from "@/lib/match";
 import Results, { type AiBrief } from "./Results";
@@ -127,6 +134,25 @@ export default function QuizFlow() {
 
   const ranked = useMemo(() => matchCommunities(a), [a]);
   const inPlay = useMemo(() => inPlayCount(a), [a]);
+
+  /* Which panel sits beside the question. Once the buyer has told us how
+     they want to spend a Saturday we keep that photograph up for the rest
+     of the run — it's the most evocative thing we have on them. */
+  const vibe: Vibe = useMemo(() => {
+    if (step === 0) return pickVibe(USE_CASE_VIBES, a.useCase);
+    if (step === 1) return pickVibe(BUDGET_VIBES, budgetKey(a.budgetMin, a.budgetMax));
+    if (step === 2) return pickVibe(SETTING_VIBES, a.setting);
+    if (step === 8) return pickVibe(TIMELINE_VIBES, a.timeline);
+    if (a.vibe) return pickVibe(VIBE_VIBES, a.vibe);
+    if (a.setting) return pickVibe(SETTING_VIBES, a.setting);
+    return VIBE_VIBES.default;
+  }, [step, a.useCase, a.budgetMin, a.budgetMax, a.setting, a.vibe, a.timeline]);
+
+  const vibeLabel =
+    step === 0 ? "Why Cabo" :
+    step === 1 ? "Your budget" :
+    step === 2 ? "Your setting" :
+    step === 8 ? "Your timeline" : "Your Cabo";
   const top = ranked[0];
 
   const set = (patch: Partial<Answers>) => setA((p) => ({ ...p, ...patch }));
@@ -177,15 +203,7 @@ export default function QuizFlow() {
   );
 
   const MatchCheck = () =>
-    step > 0 && inPlay > 0 ? (
-      <div className="mt-6 bg-cream border-l-4 border-ocean-teal rounded-md px-5 py-3">
-        <p className="label-caps text-ocean-teal text-[10px] mb-1">Match Check</p>
-        <p className="text-cabo-navy text-sm">
-          <strong>{inPlay}</strong> of 40 Cabo communities are still in play
-          {step < 5 ? " — plenty of room to get picky." : " — dialing in."}
-        </p>
-      </div>
-    ) : null;
+    step > 0 ? <CompanionTip text={narrowingLine(inPlay, step)} /> : null;
 
   const Choice = ({ q, onPick }: { q: { stop: string; title: string; hint: string; opts: readonly Opt[] }; onPick: (v: string) => void }) => (
     <div className={card}>
@@ -262,10 +280,13 @@ export default function QuizFlow() {
     "w-full px-4 py-3 border border-stone rounded-md focus:outline-none focus:border-sand-gold focus:ring-2 focus:ring-sand-gold/20 text-cabo-navy bg-white";
 
   return (
-    <div className="grid lg:grid-cols-[240px_1fr] gap-6 max-w-5xl mx-auto">
-      <div className="hidden lg:block"><RouteRail step={step} /></div>
+    <div className="max-w-6xl mx-auto">
+      <AgentHeader />
 
-      <div>
+      <div className="grid lg:grid-cols-[210px_minmax(0,1fr)_300px] gap-5">
+        <div className="hidden lg:block"><RouteRail step={step} /></div>
+
+        <div>
         {step === 0 && <Choice q={Q.useCase} onPick={(v) => pick({ useCase: v })} />}
 
         {step === 1 && (
@@ -473,7 +494,17 @@ export default function QuizFlow() {
         )}
 
         {step >= 9 && unlocked && (
-          <Results ranked={ranked} answers={a} firstName={firstName} brief={brief} aiLoading={aiLoading} />
+            <Results ranked={ranked} answers={a} firstName={firstName} brief={brief} aiLoading={aiLoading} />
+          )}
+        </div>
+
+        {/* On desktop this is the third column; on mobile the grid collapses
+            and it lands directly under the question, which is where it wants
+            to be on a phone anyway. */}
+        {step < 9 && (
+          <div className="lg:sticky lg:top-6 self-start">
+            <VibeCard vibe={vibe} label={vibeLabel} />
+          </div>
         )}
       </div>
     </div>
