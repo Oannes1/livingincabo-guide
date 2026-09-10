@@ -8,6 +8,8 @@ import CompanionTip, { narrowingLine } from "./CompanionTip";
 import ContradictionCallout from "./ContradictionCallout";
 import ScoringReveal from "./ScoringReveal";
 import GuideOffer from "./GuideOffer";
+import FlyingMap from "./FlyingMap";
+import UnlockGate from "./UnlockGate";
 import { findContradiction, type Contradiction } from "@/lib/contradictions";
 import { track, markStepEntered, msOnStep, trackAbandonOnce } from "@/lib/analytics";
 import {
@@ -701,19 +703,36 @@ export default function QuizFlow() {
             <button
               disabled={!a.timeline}
               onClick={() => {
-                setScoring(true);
-                track("scoring_started", { inPlay, topMatch: top?.c.name, topScore: top?.score });
+                track("gate_view", { inPlay, topMatch: top?.c.name, topScore: top?.score });
                 setStep(9);
               }}
               className="mt-7 w-full bg-sand-gold hover:bg-sand-gold-dark text-cabo-navy font-semibold py-4 rounded-md transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              {a.timeline ? "Show me my shortlist \u2192" : "Pick a timeline to finish"}
+              {a.timeline ? "See my matches \u2192" : "Pick a timeline to finish"}
             </button>
 
             <button onClick={() => setStep(7)} className="mt-5 text-sm text-text-muted hover:text-cabo-navy">
               &larr; Back
             </button>
           </div>
+        )}
+
+        {/* ---------- THE GATE ----------
+             Reversed on 2026-09-10. The shortlist used to be free and the
+             email was earned afterwards. The call now is that a buyer who
+             will not leave a name and an email is not a lead, and the data
+             is the point of the exercise. They still see their strongest
+             match first, so the trade is visible before it is asked for. */}
+        {step === 9 && !unlocked && !scoring && (
+          <UnlockGate
+            top={top}
+            remaining={Math.max(0, Math.min(ranked.length, 5) - 1)}
+            onUnlock={captureLead}
+            onDone={() => {
+              setScoring(true);
+              track("scoring_started", { inPlay, topMatch: top?.c.name, topScore: top?.score });
+            }}
+          />
         )}
 
         {/* ---------- THE REVEAL ---------- */}
@@ -745,7 +764,7 @@ export default function QuizFlow() {
             <Results ranked={ranked} answers={a} firstName={firstName} brief={brief} aiLoading={aiLoading} />
             <GuideOffer
               topNames={ranked.slice(0, 3).map((m) => m.c.name)}
-              onSubmit={captureLead}
+              firstName={firstName}
               onPhone={addPhone}
             />
           </>
@@ -757,7 +776,11 @@ export default function QuizFlow() {
             to be on a phone anyway. */}
         {!showResults && (
           <div className="lg:sticky lg:top-6 lg:self-stretch">
-            <VibeCard vibe={vibe} label={vibeLabel} />
+            {step >= 2 ? (
+              <FlyingMap ranked={ranked} label={step === 8 ? "Your shortlist" : "Still in play"} />
+            ) : (
+              <VibeCard vibe={vibe} label={vibeLabel} />
+            )}
           </div>
         )}
       </div>

@@ -60,7 +60,7 @@ export default function Results({
           </p>
         ) : (
           <p className="text-sm text-cabo-slate mt-3">
-            Nothing has been sent and nobody has been notified — this is yours to sit with.
+            Your guide is sending now. Nobody will call unless you ask them to.
           </p>
         )}
       </div>

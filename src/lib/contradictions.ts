@@ -98,6 +98,15 @@ export const RULES: ContradictionRule[] = [
     choose: { keepA: "Quiet — it's for us", keepB: "Income — it's an investment" },
   },
   {
+    id: "walkable-medical",
+    active: (a) => has(a.mustHaves, "medical") && (a.setting === "walkable" || has(a.mustHaves, "walkable")),
+    a: { label: "walking to dinner", pred: attr("walkable") },
+    b: { label: "medical care nearby", pred: attr("medical") },
+    say: () =>
+      "Worth saying plainly: the walkable old towns and the hospitals are not the same part of Cabo. Nowhere gives you both on foot — though San Jose puts you closest, at a short drive.",
+    choose: { keepA: "Walkability first", keepB: "Medical access first" },
+  },
+  {
     id: "quiet-medical",
     active: (a) => a.vibe === "private" && has(a.mustHaves, "medical"),
     a: { label: "off the radar", pred: attr("quiet") },

@@ -11,8 +11,8 @@ const PANELS = [
   {
     img: "/images/quiz/land/cerritos-beach.jpg",
     n: "One",
-    t: "A ranked shortlist, free and unlocked",
-    b: "Your top communities in order, scored and reasoned. On screen the moment you finish. No email to see it.",
+    t: "A ranked shortlist, scored and reasoned",
+    b: "Your top communities in order, with a match score and the reasoning behind each. Your strongest match shows before we ask for anything.",
     place: "Cerritos, Pacific side",
   },
   {

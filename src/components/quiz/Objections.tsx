@@ -9,8 +9,8 @@ import Reveal from "./Reveal";
  */
 const FAQ = [
   {
-    q: "Do I have to give my email to see the result?",
-    a: "No. The ranked shortlist appears on screen the moment you finish. We ask for an email afterwards, only for the written guide to your own three communities.",
+    q: "Do I have to give my email?",
+    a: "For the full ranked list, yes. You see your strongest match and its score before we ask, so you can judge the answer first. The email also brings the written guide to your top three.",
   },
   {
     q: "Will someone call me?",

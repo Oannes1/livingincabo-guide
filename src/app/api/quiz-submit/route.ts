@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { checkForSpam } from "@/lib/spam-protection";
 import { createFUBContact } from "@/lib/fub";
-import { sendLeadAlertEmail, sendGuideEmail } from "@/lib/email";
+import { sendLeadAlertEmail, sendGuideEmail, sendAgentNewLead } from "@/lib/email";
 import { signBrief } from "@/lib/brief-token";
 
 const LABEL: Record<string, Record<string, string>> = {
@@ -150,6 +150,20 @@ export async function POST(request: Request) {
       }),
       sendGuideEmail({ firstName, email }),
     ]);
+
+    /* Tell Aaron a lead landed. This is the happy path, which previously
+       notified nobody — the only agent mail was the FUB-failure alert. */
+    const agent = await sendAgentNewLead({
+      firstName, lastName, email, phone,
+      topMatch: top?.name, topScore: top?.score,
+      timeline: L("timeline", quiz.timeline),
+      whyNow: L("whyNow", quiz.whyNow),
+      budget: `${money(quiz.budgetMin as number)} – ${money(quiz.budgetMax as number)}`,
+      briefUrl,
+    });
+    if (!agent.success && !agent.skipped) {
+      console.error("[quiz] agent alert failed:", agent.error);
+    }
 
     if (!fub.success && !fub.skipped) {
       console.error("[quiz] FUB failed:", fub.error);
