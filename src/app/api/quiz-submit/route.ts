@@ -38,6 +38,28 @@ const LABEL: Record<string, Record<string, string>> = {
     "12plus": "1–2 years",
     dreaming: "Just exploring",
   },
+  buildStage: {
+    presale: "Pre-construction",
+    underConstruction: "Under construction",
+    ready: "Move-in ready",
+    any: "Open to any stage",
+  },
+  hoaTolerance: {
+    low: "Lean — under ~$500/mo",
+    medium: "Mid — up to ~$1,200/mo",
+    high: "Doesn't care — wants the services",
+    dontcare: "Not sure yet",
+  },
+  amenities: {
+    branded: "Branded operator",
+    spa: "Spa & wellness",
+    golf: "Golf on site",
+    marina: "Marina access",
+    concierge: "Concierge & rental program",
+    family: "Family facilities",
+    pool: "Serious pool",
+    gym: "Real fitness center",
+  },
   whyNow: {
     winters: "Somewhere warm for the winters",
     stretch: "Money goes further than at home",
@@ -108,6 +130,32 @@ export async function POST(request: Request) {
     const briefToken = signBrief({ firstName, lastName, email, phone, quiz, matches, at });
     const briefUrl = `https://quiz.livingincabo.com/brief/${briefToken}`;
 
+    /* Built once and used by BOTH the Follow Up Boss note and the email to
+       Aaron. They used to be written separately, which is how the email ended
+       up thinner than the CRM note nobody reads first. */
+    const amenityList = Array.isArray(quiz.amenities) ? (quiz.amenities as string[]) : [];
+    const answerRows: [string, string][] = [
+      ["Why Cabo", L("useCase", quiz.useCase)],
+      ["Budget", `${money(quiz.budgetMin as number)} – ${money(quiz.budgetMax as number)}`],
+      ["Setting", L("setting", quiz.setting)],
+      ["Vibe", L("vibe", quiz.vibe)],
+      ["Home type", L("homeType", quiz.homeType)],
+      ["Build stage", L("buildStage", quiz.buildStage)],
+      ["Monthly carry", L("hoaTolerance", quiz.hoaTolerance)],
+      [
+        "Amenities",
+        amenityList.length
+          ? amenityList.map((x) => LABEL.amenities[x] || x).join(", ")
+          : "none picked",
+      ],
+      [
+        "Dealbreakers",
+        musts.length ? musts.map((m) => LABEL.mustHaves[m] || m).join(", ") : "none given",
+      ],
+      ["Timeline", L("timeline", quiz.timeline)],
+      ["Why now", L("whyNow", quiz.whyNow)],
+    ];
+
     const note = [
       `NEIGHBORHOOD MATCH QUIZ — completed ${at}`,
       ``,
@@ -117,15 +165,8 @@ export async function POST(request: Request) {
         : ``,
       ``,
       `WHAT THEY TOLD US`,
-      `  Why Cabo ....... ${L("useCase", quiz.useCase)}`,
-      `  Budget ......... ${money(quiz.budgetMin as number)} – ${money(quiz.budgetMax as number)}`,
-      `  Setting ........ ${L("setting", quiz.setting)}`,
-      `  Vibe ........... ${L("vibe", quiz.vibe)}`,
-      `  Home type ...... ${L("homeType", quiz.homeType)}`,
-      `  Dealbreakers ... ${musts.length ? musts.map((m) => LABEL.mustHaves[m] || m).join(", ") : "none given"}`,
-      `  Timeline ....... ${L("timeline", quiz.timeline)}`,
-      `  Why now ........ ${L("whyNow", quiz.whyNow)}`,
-      `  Phone .......... ${phone || "not provided"}`,
+      ...answerRows.map(([k, v]) => `  ${k.padEnd(15, ".")} ${v}`),
+      `  Phone.......... ${phone || "not provided"}`,
       ``,
       `AGENT LEAD BRIEF (private link — how to open the call, why each match fit,`,
       `tradeoffs to raise, and a first text you can copy):`,
@@ -167,11 +208,13 @@ export async function POST(request: Request) {
        notified nobody — the only agent mail was the FUB-failure alert. */
     const agent = await sendAgentNewLead({
       firstName, lastName, email, phone,
-      topMatch: top?.name, topScore: top?.score,
-      timeline: L("timeline", quiz.timeline),
-      whyNow: L("whyNow", quiz.whyNow),
-      budget: `${money(quiz.budgetMin as number)} – ${money(quiz.budgetMax as number)}`,
+      answers: answerRows,
+      matches: matches.slice(0, 5).map((m) => ({ name: m.name, score: m.score })),
       briefUrl,
+      submittedAt: new Date(at).toLocaleString("en-US", {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }),
     });
     if (!agent.success && !agent.skipped) {
       console.error("[quiz] agent alert failed:", agent.error);
