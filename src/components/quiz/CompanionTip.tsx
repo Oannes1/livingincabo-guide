@@ -3,12 +3,15 @@
 import { useEffect, useRef, useState } from "react";
 
 /**
- * The note from Aaron that types itself out after an answer.
+ * Aaron, leaning in.
  *
- * It exists to make the search feel like it's tightening in real time, and
- * to teach — gently — that preferences have consequences. It never leaves
- * the buyer at a dead end: when the pool empties, the copy says how to get
- * options back.
+ * This used to sit inline under the options, where it read as a status bar.
+ * It now flies in over the corner, types itself, holds, and leaves — so the
+ * buyer feels spoken to rather than reported at. On a phone it docks to the
+ * bottom, where a message belongs.
+ *
+ * It never covers the options: on desktop it sits in the gutter beside the
+ * card, on mobile it reserves its own space above the fold line.
  */
 
 export function narrowingLine(count: number, step: number): string {
@@ -28,42 +31,53 @@ export function narrowingLine(count: number, step: number): string {
   return `${count} communities still fit everything so far. We can go tighter.`;
 }
 
-export default function CompanionTip({
-  text,
-  onDismiss,
-}: {
-  text: string;
-  onDismiss?: () => void;
-}) {
+const HOLD_MS = 7000;
+
+export default function CompanionTip({ text }: { text: string }) {
   const [typed, setTyped] = useState("");
   const [done, setDone] = useState(false);
-  const timer = useRef<number | null>(null);
+  const [visible, setVisible] = useState(false);
+  const timers = useRef<number[]>([]);
 
   useEffect(() => {
+    timers.current.forEach(clearTimeout);
+    timers.current = [];
+    if (!text) {
+      setVisible(false);
+      return;
+    }
+
     const reduced =
       typeof window !== "undefined" &&
       window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
-    if (reduced || !text) {
+    setVisible(true);
+    setDone(false);
+
+    if (reduced) {
       setTyped(text);
       setDone(true);
-      return;
+    } else {
+      setTyped("");
+      let i = 0;
+      const id = window.setInterval(() => {
+        i += 1;
+        setTyped(text.slice(0, i));
+        if (i >= text.length) {
+          window.clearInterval(id);
+          setDone(true);
+        }
+      }, 16);
+      timers.current.push(id);
     }
 
-    setTyped("");
-    setDone(false);
-    let i = 0;
-    timer.current = window.setInterval(() => {
-      i += 1;
-      setTyped(text.slice(0, i));
-      if (i >= text.length) {
-        if (timer.current) window.clearInterval(timer.current);
-        setDone(true);
-      }
-    }, 16);
+    /* Say it, then get out of the way. */
+    timers.current.push(window.setTimeout(() => setVisible(false), HOLD_MS));
 
     return () => {
-      if (timer.current) window.clearInterval(timer.current);
+      timers.current.forEach(clearTimeout);
+      timers.current.forEach(clearInterval);
+      timers.current = [];
     };
   }, [text]);
 
@@ -71,49 +85,59 @@ export default function CompanionTip({
 
   return (
     <div
-      className="mt-5 flex items-start gap-3 rounded-md border border-ocean-teal/25 bg-cream px-4 py-3.5"
+      className={`quip pointer-events-none z-30 ${visible ? "quip-in" : "quip-out"}`}
       role="status"
       aria-live="polite"
     >
-      <span className="relative flex-shrink-0 mt-0.5">
-        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-cabo-navy">
-          {/* waveform — settles once the line has finished typing */}
+      <div className="pointer-events-auto flex items-start gap-3 rounded-[1.15rem] bg-cabo-navy/95 backdrop-blur px-4 py-3.5 ring-1 ring-sand-gold/25 shadow-[0_18px_44px_-18px_rgba(3,14,26,.75)]">
+        <span className="relative mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-sand-gold/15 ring-1 ring-sand-gold/35">
           <span className="flex items-end gap-[2px] h-3.5" aria-hidden>
             {[0, 1, 2, 3].map((i) => (
               <span
                 key={i}
                 className={`w-[2px] rounded-full bg-sand-gold ${done ? "" : "wave"}`}
-                style={{
-                  height: done ? 5 : 6,
-                  animationDelay: `${i * 0.13}s`,
-                }}
+                style={{ height: done ? 5 : 6, animationDelay: `${i * 0.13}s` }}
               />
             ))}
           </span>
         </span>
-      </span>
 
-      <div className="min-w-0 flex-1">
-        <p className="label-caps text-[10px] text-ocean-teal mb-1">Aaron</p>
-        <p className="text-cabo-navy text-sm leading-relaxed">
-          {typed}
-          {!done && <span className="inline-block w-[6px] animate-pulse">▍</span>}
-        </p>
+        <div className="min-w-0 flex-1">
+          <p className="label-caps text-[9px] text-sand-gold mb-1">Aaron</p>
+          <p className="text-white/90 text-[13.5px] leading-relaxed">
+            {typed}
+            {!done && <span className="inline-block w-[6px] animate-pulse">▍</span>}
+          </p>
+        </div>
       </div>
 
-      {onDismiss && (
-        <button
-          onClick={onDismiss}
-          aria-label="Dismiss"
-          className="flex-shrink-0 text-text-muted hover:text-cabo-navy focus:outline-none focus-visible:ring-2 focus-visible:ring-sand-gold rounded"
-        >
-          <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2">
-            <path strokeLinecap="round" d="M18 6 6 18M6 6l12 12" />
-          </svg>
-        </button>
-      )}
-
       <style jsx>{`
+        .quip {
+          position: fixed;
+          left: 1rem;
+          right: 1rem;
+          bottom: 1rem;
+          max-width: 26rem;
+          margin-inline: auto;
+          transition: opacity 0.5s cubic-bezier(0.32, 0.72, 0, 1),
+            transform 0.5s cubic-bezier(0.32, 0.72, 0, 1);
+        }
+        @media (min-width: 1024px) {
+          .quip {
+            left: auto;
+            right: 1.75rem;
+            bottom: 1.75rem;
+            margin-inline: 0;
+          }
+        }
+        .quip-in {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+        .quip-out {
+          opacity: 0;
+          transform: translateY(14px) scale(0.97);
+        }
         .wave {
           animation: wv 1.1s ease-in-out infinite;
         }
@@ -127,6 +151,9 @@ export default function CompanionTip({
           }
         }
         @media (prefers-reduced-motion: reduce) {
+          .quip {
+            transition: none;
+          }
           .wave {
             animation: none;
           }
