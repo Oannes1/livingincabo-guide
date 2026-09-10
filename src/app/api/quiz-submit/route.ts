@@ -95,6 +95,11 @@ export async function POST(request: Request) {
       );
     }
 
+    /* A guide request is a lighter lead than a completed quiz: one community,
+       no answers. It still goes through the same pipeline so nothing is lost. */
+    const isGuide = String(body.leadType || "") === "neighborhood-guide";
+    const guideName = String((body.matches?.[0]?.name) || "").trim() || "Los Cabos";
+
     const at = new Date().toISOString();
     const L = (k: string, v: unknown) => LABEL[k]?.[String(v)] || String(v ?? "n/a");
     const musts = Array.isArray(quiz.mustHaves) ? (quiz.mustHaves as string[]) : [];
@@ -144,8 +149,15 @@ export async function POST(request: Request) {
         lastName,
         email,
         phone,
-        source: "Cabo Neighborhood Match Quiz",
-        tags: ["Lead Magnet", "Cabo Quiz", "quiz.livingincabo.com"],
+        source: isGuide
+          ? `Neighborhood Guide — ${guideName}`
+          : "Cabo Neighborhood Match Quiz",
+        /* Tagged apart so Follow Up Boss can tell a guide request from a
+           finished quiz. They are different intents: one asked about a
+           specific place, the other doesn't know where they want to be. */
+        tags: isGuide
+          ? ["Lead Magnet", "Neighborhood Guide", guideName, "quiz.livingincabo.com"]
+          : ["Lead Magnet", "Cabo Quiz", "quiz.livingincabo.com"],
         note,
       }),
       sendGuideEmail({ firstName, email }),

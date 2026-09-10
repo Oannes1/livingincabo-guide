@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import type { Scored } from "@/lib/match";
 import type { Answers } from "@/lib/match";
 import { matchDevelopments } from "@/lib/match";
