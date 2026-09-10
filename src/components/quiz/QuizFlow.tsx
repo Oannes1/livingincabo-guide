@@ -238,6 +238,37 @@ export default function QuizFlow() {
 
   /* Two-part screens advance once both halves are answered, in either order,
      so a single-select never behaves differently from screen to screen. */
+  /* ── LIE 4 · the page promised "your shortlist stays here" while a refresh,
+     a back-swipe or its own off-site CTA erased everything. Answers now
+     survive all three. Rehydration runs once, before first paint of the
+     intro, so a returning buyer never sees the quiz reset itself. */
+  const SAVE_KEY = "lic_quiz_v1";
+  const restored = useRef(false);
+
+  useEffect(() => {
+    if (restored.current) return;
+    restored.current = true;
+    try {
+      const raw = localStorage.getItem(SAVE_KEY);
+      if (!raw) return;
+      const saved = JSON.parse(raw) as { a?: Answers; step?: number; settled?: string[] };
+      if (saved.a && Object.keys(saved.a).length) {
+        setA(saved.a);
+        setSettled(saved.settled ?? []);
+        setStep(Math.min(saved.step ?? 0, 8));
+        setStarted(true);
+      }
+    } catch { /* corrupt or blocked storage is not worth a broken quiz */ }
+  }, []);
+
+  useEffect(() => {
+    if (!restored.current || !started) return;
+    try {
+      localStorage.setItem(SAVE_KEY, JSON.stringify({ a, step, settled }));
+    } catch { /* private mode — the quiz still works, it just won't resume */ }
+  }, [a, step, settled, started]);
+
+  const showResults = step >= 9 && unlocked && !scoring;
   const pairAdvanced = useRef(false);
   const pickPair = (patch: Partial<Answers>) => {
     const [k, v] = Object.entries(patch)[0] ?? [];
@@ -444,11 +475,20 @@ export default function QuizFlow() {
     "w-full px-4 py-3 border border-stone rounded-md focus:outline-none focus:border-sand-gold focus:ring-2 focus:ring-sand-gold/20 text-cabo-navy bg-white";
 
   return (
-    <div className="max-w-6xl mx-auto">
+    <div className="max-w-[1180px] mx-auto">
       <AgentHeader />
 
-      <div className="grid lg:grid-cols-[220px_minmax(0,1fr)_320px] gap-5 items-stretch">
-        <div className="hidden lg:block"><RouteRail step={step} /></div>
+      {/* The rail and the panel earn their space while there are questions
+          left. On the results they don't: a completed rail stretched into a
+          3,400px white column beside the one thing the buyer came for. */}
+      <div
+        className={
+          showResults
+            ? "grid grid-cols-1"
+            : "grid lg:grid-cols-[200px_minmax(560px,1fr)_300px] gap-6 items-stretch"
+        }
+      >
+        {!showResults && <div className="hidden lg:block"><RouteRail step={step} /></div>}
 
         <div>
         {step === 0 && <Choice q={Q.useCase} onPick={(v) => pick({ useCase: v })} />}
@@ -644,7 +684,7 @@ export default function QuizFlow() {
             </button>
 
             <button onClick={() => setStep(7)} className="mt-5 text-sm text-text-muted hover:text-cabo-navy">
-              \u2190 Back
+              &larr; Back
             </button>
           </div>
         )}
@@ -688,7 +728,7 @@ export default function QuizFlow() {
         {/* On desktop this is the third column; on mobile the grid collapses
             and it lands directly under the question, which is where it wants
             to be on a phone anyway. */}
-        {step < 9 && (
+        {!showResults && (
           <div className="lg:sticky lg:top-6 lg:self-stretch">
             <VibeCard vibe={vibe} label={vibeLabel} />
           </div>

@@ -48,7 +48,13 @@ export default function QuizPage() {
             you&apos;d be trading away, and where your answers contradict each other.
           </p>
 
+        </div>
+
+        <div className="relative z-10 max-w-[1180px] mx-auto px-5 md:px-8 pb-20 md:pb-24 text-left">
           <QuizFlow />
+        </div>
+
+        <div className="relative z-10 max-w-5xl mx-auto px-6 md:px-10 pb-20 md:pb-24 text-center">
 
           <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-4 pt-12 mt-12 border-t border-white/10">
             <Stat n="40" l="Communities scored" />

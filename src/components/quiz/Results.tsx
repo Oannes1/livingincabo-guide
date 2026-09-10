@@ -49,17 +49,20 @@ export default function Results({
           Every match below shows <strong>why it fits</strong> and — just as importantly —{" "}
           <strong>what you'd be trading away</strong>. That second part is what most buyers only find out after they've closed.
         </p>
-        {/* This promise is kept by /api/quiz-submit, which calls
-            sendGuideEmail() via Resend on every submit. Do NOT swap that back
-            to "a FUB tag fires an Action Plan" — that assumption is what
-            silently dropped every guide lead until 87400eb. We promise the
-            GUIDE, not "a copy of your shortlist", because the email template
-            is static and can't list their matches. */}
-        <p className="text-xs text-text-muted mt-3">
-          Worth bookmarking this page. We&apos;ve also emailed you our 33-page buying guide to go
-          with it, and one of our Ronival agents will follow up with what&apos;s actually on the
-          market in these communities.
-        </p>
+        {/* Only true AFTER capture. Stating it before we hold an address told
+            the buyer an agency was about to call them — the exact fear that
+            stops someone typing their email — and then asked for their email
+            three thousand pixels further down. */}
+        {firstName ? (
+          <p className="text-sm text-cabo-slate mt-3">
+            Your 33-page buying guide is on its way, and Aaron will follow up himself with
+            what&apos;s actually on the market in these communities.
+          </p>
+        ) : (
+          <p className="text-sm text-cabo-slate mt-3">
+            Nothing has been sent and nobody has been notified — this is yours to sit with.
+          </p>
+        )}
       </div>
 
       {/* live AI brief */}
@@ -69,6 +72,44 @@ export default function Results({
           <p className="text-cabo-slate text-sm">
             Reading your answers against all 40 communities and 82 developments…
           </p>
+        </div>
+      )}
+
+      {/* LIE 2 · When the written read is unavailable the page used to show a
+          spinner, then nothing — while the landing page promised a read three
+          separate times. The engine already computes, per community, exactly
+          what the buyer asked for that this place cannot give them. That IS
+          the tradeoff analysis, so we render it rather than apologise. */}
+      {!aiLoading && !brief && (
+        <div className="bg-cabo-navy bg-grain rounded-[1.75rem] p-7 md:p-9">
+          <p className="label-caps text-sand-gold text-[10px] mb-3">The honest read</p>
+          <h3 className="heading-display text-white text-2xl md:text-3xl leading-tight mb-3">
+            What each of these would cost you
+          </h3>
+          <p className="text-white/70 text-[15px] leading-relaxed mb-6 max-w-[56ch]">
+            Every place on your shortlist is a trade. Here is the honest cost of each one —
+            what it can&apos;t give you, and what locals know that the listings don&apos;t say.
+            Worth reading before you fall for any of them.
+          </p>
+          <div className="space-y-4">
+            {top5.map((m) => {
+              const lines = [...m.misses, ...(m.c.tradeoffs ?? [])].slice(0, 3);
+              if (!lines.length) return null;
+              return (
+                <div key={m.c.slug} className="border-t border-white/10 pt-4">
+                  <p className="font-semibold text-white text-[15px] mb-1.5">{m.c.name}</p>
+                  <ul className="space-y-1">
+                    {lines.map((line) => (
+                      <li key={line} className="text-white/65 text-sm flex gap-2">
+                        <span aria-hidden className="text-sand-gold flex-shrink-0">·</span>
+                        <span>{line}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 
