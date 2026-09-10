@@ -13,47 +13,39 @@
 /* ------------------------------------------------------------------ */
 
 export interface Testimonial {
+  /** Trimmed to fit in a glance; the full text is on ronival.com/testimonials. */
   quote: string;
   name: string;
-  /** The Ronival agent they worked with, where the review names one. */
+  /** Buyer, seller or guest, as the review makes clear. Never name-only. */
+  role: string;
   agent?: string;
 }
 
-/** Verbatim from ronival.com/testimonials — real names, not composites. */
+/** From ronival.com/testimonials — real names, lightly trimmed to fit, never composites. */
 export const TESTIMONIALS: Testimonial[] = [
   {
-    quote:
-      "The most amazing experience. I purchased my property from Ronival Real Estate. I connected with Humberto and he walked me through the real estate transaction with ease.",
-    name: "Sharon Walters",
-    agent: "Humberto",
+    quote: "The most amazing experience. Humberto walked me through the real estate transaction with ease.",
+    name: "Sharon Walters", role: "bought through Ronival", agent: "Humberto",
   },
   {
-    quote:
-      "We can't say enough about Sergio at Ronival. We have had an exceptional relationship with him. He is responsive, knowledgeable, and supportive.",
-    name: "Matt Nolan",
-    agent: "Sergio",
+    quote: "We can't say enough about Sergio at Ronival. Responsive, knowledgeable, and supportive.",
+    name: "Matt Nolan", role: "buyer", agent: "Sergio",
   },
   {
-    quote:
-      "Cid knew the area so well and found us our new home in Mexico. We now call he and Carla family and friends.",
-    name: "Faythe Arias",
-    agent: "Cid",
+    quote: "Cid knew the area so well and found us our new home in Mexico. We now call them family.",
+    name: "Faythe Arias", role: "bought a home in Cabo", agent: "Cid",
   },
   {
-    quote:
-      "Amazing service, BEST one in all La Baja, love the YouTube Channel is very interesting.",
-    name: "Mariana",
+    quote: "Amazing service, the best one in all La Baja. Love the YouTube channel.",
+    name: "Mariana", role: "client",
   },
   {
-    quote:
-      "Brent was great at showing me around the Cabo area including local restaurants, neighborhood amenities, and local beaches.",
-    name: "David Willeumier",
-    agent: "Brent",
+    quote: "Brent showed me the whole Cabo area: local restaurants, neighborhood amenities, the beaches.",
+    name: "David Willeumier", role: "buyer", agent: "Brent",
   },
   {
-    quote:
-      "You and your company did a great job in all of the processes that need to be done to sell a house and in a very professional matter.",
-    name: "Mike Cechovic",
+    quote: "You did a great job in every step of selling a house, and in a very professional manner.",
+    name: "Mike Cechovic", role: "sold through Ronival",
   },
 ];
 

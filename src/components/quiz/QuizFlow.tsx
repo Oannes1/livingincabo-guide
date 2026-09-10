@@ -269,6 +269,23 @@ export default function QuizFlow() {
   }, [a, step, settled, started]);
 
   const showResults = step >= 9 && unlocked && !scoring;
+
+  /* Focus and viewport follow the question. Without this a keyboard or
+     screen-reader user is dropped at the top of the document on every
+     answer, and a mouse user clicks Start and sees nothing move. */
+  const cardRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (!started) return;
+    const el = cardRef.current;
+    if (!el) return;
+    const h = el.querySelector<HTMLElement>("h2");
+    const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    el.scrollIntoView({ block: "start", behavior: reduced ? "auto" : "smooth" });
+    if (h) {
+      h.tabIndex = -1;
+      h.focus({ preventScroll: true });
+    }
+  }, [step, started]);
   const pairAdvanced = useRef(false);
   const pickPair = (patch: Partial<Answers>) => {
     const [k, v] = Object.entries(patch)[0] ?? [];
@@ -349,7 +366,6 @@ export default function QuizFlow() {
             <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
           </svg>
         </button>
-        <p className="text-white/60 text-sm mt-4">Free · No account · 8 questions, then your AI-analysed shortlist</p>
       </div>
     );
   }
@@ -490,7 +506,18 @@ export default function QuizFlow() {
       >
         {!showResults && <div className="hidden lg:block"><RouteRail step={step} /></div>}
 
-        <div>
+        <div ref={cardRef} className="scroll-mt-24">
+          {!showResults && (
+            <div className="lg:hidden mb-3 flex items-center gap-3" aria-label="Progress">
+              <div className="h-1 flex-1 rounded-full bg-white/15 overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-sand-gold transition-[width] duration-500 ease-[cubic-bezier(.22,1,.36,1)]"
+                  style={{ width: `${Math.round(((step + 1) / 10) * 100)}%` }}
+                />
+              </div>
+              <span className="label-caps text-sand-gold text-[10px] tabular-nums">Stop {step + 1}/10</span>
+            </div>
+          )}
         {step === 0 && <Choice q={Q.useCase} onPick={(v) => pick({ useCase: v })} />}
 
         {step === 1 && (

@@ -35,6 +35,7 @@ const G = {
 /* ---------------- Q1 · why Cabo ---------------- */
 export const USE_CASE_VIBES: VibeTable = {
   retire: {
+    image: "/images/quiz/twin-dolphin-club.jpg",
     emoji: "🌅",
     headline: "The long stay",
     line: "Winters you never have to shovel and a doctor twenty minutes away. We'll weight both.",
@@ -42,6 +43,7 @@ export const USE_CASE_VIBES: VibeTable = {
     accent: "#E3C387",
   },
   "second-home": {
+    image: "/images/quiz/maravilla-pool.jpg",
     emoji: "🏖️",
     headline: "Yours whenever you want it",
     line: "Lock the door, fly home, come back to it exactly as you left it.",
@@ -49,6 +51,7 @@ export const USE_CASE_VIBES: VibeTable = {
     accent: "#6FD3E0",
   },
   rental: {
+    image: "/images/quiz/puerto-los-cabos.jpg",
     emoji: "📈",
     headline: "Make it pay for itself",
     line: "Not every beautiful address rents well. We'll steer you to the ones that do.",
@@ -56,6 +59,7 @@ export const USE_CASE_VIBES: VibeTable = {
     accent: "#5AD1B4",
   },
   relocate: {
+    image: "/images/quiz/san-jose-beach.jpg",
     emoji: "✈️",
     headline: "All in",
     line: "Different question entirely — schools, internet, residency, real life. We'll go there.",
@@ -63,6 +67,7 @@ export const USE_CASE_VIBES: VibeTable = {
     accent: "#B9A7F0",
   },
   default: {
+    image: "/images/quiz/cabo-del-sol.jpg",
     emoji: "🧭",
     headline: "Let's find your Cabo",
     line: "Forty communities, eighty-two developments. We'll narrow it as you go.",
@@ -74,6 +79,7 @@ export const USE_CASE_VIBES: VibeTable = {
 /* ---------------- Q2 · budget ---------------- */
 export const BUDGET_VIBES: VibeTable = {
   entry: {
+    image: "/images/quiz/el-tezal.jpg",
     emoji: "🔑",
     headline: "There's more here than people think",
     line: "El Tezal, Fonatur, the inland side of San José. Real homes, real neighbourhoods.",
@@ -81,6 +87,7 @@ export const BUDGET_VIBES: VibeTable = {
     accent: "#6FD3E0",
   },
   mid: {
+    image: "/images/quiz/fonatur.jpg",
     emoji: "🎯",
     headline: "The busiest part of the market",
     line: "The widest choice in Cabo sits right here — and the most competition for it.",
@@ -88,6 +95,7 @@ export const BUDGET_VIBES: VibeTable = {
     accent: "#5AD1B4",
   },
   upper: {
+    image: "/images/quiz/cabo-real.jpg",
     emoji: "🌟",
     headline: "Now the gates open",
     line: "Golf communities, beach clubs, and the corridor addresses start coming into range.",
@@ -95,6 +103,7 @@ export const BUDGET_VIBES: VibeTable = {
     accent: "#E3C387",
   },
   luxury: {
+    image: "/images/quiz/querencia.jpg",
     emoji: "🥂",
     headline: "The corridor is yours",
     line: "Palmilla, Querencia, Chileno Bay. Oceanfront stops being a stretch.",
@@ -102,6 +111,7 @@ export const BUDGET_VIBES: VibeTable = {
     accent: "#F0D7A6",
   },
   trophy: {
+    image: "/images/quiz/espiritu-del-mar.jpg",
     emoji: "👑",
     headline: "Anything on the peninsula",
     line: "At this level it's not about price. It's about which twelve properties are worth seeing.",
@@ -109,6 +119,7 @@ export const BUDGET_VIBES: VibeTable = {
     accent: "#D9C4F5",
   },
   open: {
+    image: "/images/quiz/montage-los-cabos.jpg",
     emoji: "🤑",
     headline: "No ceiling",
     line: "Then we judge on fit alone. Let's see what actually suits you.",
@@ -116,6 +127,7 @@ export const BUDGET_VIBES: VibeTable = {
     accent: "#8FA8BF",
   },
   default: {
+    image: "/images/quiz/el-medano.jpg",
     emoji: "💭",
     headline: "What's it worth to you?",
     line: "Be honest rather than optimistic — the shortlist gets sharper.",
@@ -172,7 +184,7 @@ export const SETTING_VIBES: VibeTable = {
     line: "Choose a setting and watch it come into focus.",
     gradient: G.deep,
     accent: "#8FA8BF",
-    image: "/images/quiz/cabo-beach-aerial.jpg",
+    image: "/images/quiz/las-ventanas.jpg",
   },
 };
 
@@ -231,6 +243,7 @@ export const VIBE_VIBES: VibeTable = {
 /* ---------------- Q7 · timeline ---------------- */
 export const TIMELINE_VIBES: VibeTable = {
   "0-6": {
+    image: "/images/quiz/rancho-san-lucas.jpg",
     emoji: "🔥",
     headline: "Then let's move",
     line: "Good inventory here goes quietly, before it ever hits a portal.",
@@ -238,6 +251,7 @@ export const TIMELINE_VIBES: VibeTable = {
     accent: "#F0B27E",
   },
   "6-12": {
+    image: "/images/quiz/costa-azul.jpg",
     emoji: "🌤️",
     headline: "That's the sweet spot",
     line: "Enough runway to walk it in person before you commit to anything.",
@@ -245,6 +259,7 @@ export const TIMELINE_VIBES: VibeTable = {
     accent: "#6FD3E0",
   },
   "12plus": {
+    image: "/images/quiz/los-barriles.jpg",
     emoji: "🗺️",
     headline: "The smart way to do it",
     line: "The buyers who do best down here started looking about a year out.",
@@ -252,6 +267,7 @@ export const TIMELINE_VIBES: VibeTable = {
     accent: "#5AD1B4",
   },
   dreaming: {
+    image: "/images/quiz/cabo-pulmo.jpg",
     emoji: "🌙",
     headline: "Nothing wrong with that",
     line: "Half of Cabo started out as somebody's someday.",
@@ -259,6 +275,7 @@ export const TIMELINE_VIBES: VibeTable = {
     accent: "#C9B6F2",
   },
   default: {
+    image: "/images/quiz/pacific-side.jpg",
     emoji: "⏳",
     headline: "So what's the plan?",
     line: "No wrong answer — it only changes how we pace things.",

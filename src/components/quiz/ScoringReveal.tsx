@@ -113,7 +113,7 @@ export default function ScoringReveal({
             </span>
             <span
               className={`text-xs transition-colors duration-300 ${
-                i <= crit ? "text-white/80" : "text-white/28"
+                i <= crit ? "text-white/85" : "text-white/50"
               }`}
             >
               {c}

@@ -18,8 +18,8 @@ export default function MarketTicker() {
   const row = [...MARKET, ...MARKET];
 
   return (
-    <div className="relative overflow-hidden border-y border-white/[0.09] bg-cabo-navy-deep/60 py-3.5">
-      <div className="ticker flex w-max items-center gap-10 px-6">
+    <div className="relative overflow-hidden border-y border-white/[0.09] bg-cabo-navy-deep py-3.5">
+      <div className="ticker flex w-max flex-nowrap items-center gap-10 px-6">
         {row.map((m, i) => (
           <span key={i} className="flex items-baseline gap-2.5 whitespace-nowrap">
             <span className="font-semibold text-sand-gold text-[15px] tabular-nums">
@@ -34,12 +34,12 @@ export default function MarketTicker() {
       <div
         aria-hidden
         className="pointer-events-none absolute inset-y-0 left-0 w-24"
-        style={{ background: "linear-gradient(to right, #071729, rgba(7,23,41,0))" }}
+        style={{ background: "linear-gradient(to right, #04111F, rgba(4,17,31,0))" }}
       />
       <div
         aria-hidden
         className="pointer-events-none absolute inset-y-0 right-0 w-24"
-        style={{ background: "linear-gradient(to left, #071729, rgba(7,23,41,0))" }}
+        style={{ background: "linear-gradient(to left, #04111F, rgba(4,17,31,0))" }}
       />
 
       <style jsx>{`
@@ -60,8 +60,9 @@ export default function MarketTicker() {
         @media (prefers-reduced-motion: reduce) {
           .ticker {
             animation: none;
-            flex-wrap: wrap;
-            width: auto;
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
           }
         }
       `}</style>
