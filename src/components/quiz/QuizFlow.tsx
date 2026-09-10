@@ -1,10 +1,15 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import RouteRail from "./RouteRail";
 import AgentHeader from "./AgentHeader";
 import VibeCard from "./VibeCard";
 import CompanionTip, { narrowingLine } from "./CompanionTip";
+import ContradictionCallout from "./ContradictionCallout";
+import ScoringReveal from "./ScoringReveal";
+import GuideOffer from "./GuideOffer";
+import { findContradiction, type Contradiction } from "@/lib/contradictions";
+import { track, markStepEntered, msOnStep, trackAbandonOnce } from "@/lib/analytics";
 import {
   USE_CASE_VIBES, BUDGET_VIBES, SETTING_VIBES, VIBE_VIBES, TIMELINE_VIBES,
   budgetKey, pickVibe, type Vibe,
@@ -113,6 +118,17 @@ const BUDGETS = [
   { min: 0, max: 50_000_000, label: "No limit — show me everything", tier: "🤑" },
 ];
 
+const WHY_NOW: Opt[] = [
+  { value: "winters", icon: "\u2600\ufe0f", label: "Somewhere warm for the winters" },
+  { value: "stretch", icon: "\ud83d\udcb5", label: "My money goes further here than at home" },
+  { value: "family", icon: "\ud83d\udc68\u200d\ud83d\udc69\u200d\ud83d\udc67", label: "People we know already came down" },
+  { value: "use-it", icon: "\ud83c\udfd6\ufe0f", label: "I want somewhere we'd actually use, not just own" },
+  { value: "lifestyle", icon: "\ud83c\udf0a", label: "The life down here \u2014 water, golf, outdoors" },
+  { value: "income", icon: "\ud83d\udcc8", label: "It has to earn while we're not in it" },
+  { value: "youtube", icon: "\ud83d\udcfa", label: "Honestly? I got hooked on the videos" },
+  { value: "curious", icon: "\ud83d\udc40", label: "Just nosy \u2014 what does my money actually buy here?" },
+];
+
 const TIMELINES: Opt[] = [
   { value: "0-6", label: "Within 6 months" },
   { value: "6-12", label: "6–12 months" },
@@ -131,6 +147,15 @@ export default function QuizFlow() {
   const [firstName, setFirstName] = useState("");
   const [brief, setBrief] = useState<AiBrief | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
+  /* Contradictions the buyer has already ruled on — never nag twice. */
+  const [settled, setSettled] = useState<string[]>([]);
+  const [scoring, setScoring] = useState(false);
+  /* Shown once after a contradiction is settled. inPlayCount is a score
+     threshold, so a re-rank does not always move the number — without this
+     the buyer makes a choice and appears to get nothing back. */
+  const [settledNote, setSettledNote] = useState("");
+  const [captured, setCaptured] = useState<{ firstName: string; email: string } | null>(null);
+  const [contactId, setContactId] = useState<number | null>(null);
 
   const ranked = useMemo(() => matchCommunities(a), [a]);
   const inPlay = useMemo(() => inPlayCount(a), [a]);
@@ -147,6 +172,37 @@ export default function QuizFlow() {
     if (a.setting) return pickVibe(SETTING_VIBES, a.setting);
     return VIBE_VIBES.default;
   }, [step, a.useCase, a.budgetMin, a.budgetMax, a.setting, a.vibe, a.timeline]);
+
+  const clash: Contradiction | null = useMemo(
+    () => (step > 0 && step < 8 ? findContradiction(a, settled) : null),
+    [a, settled, step]
+  );
+
+  const STEP_KEYS = [
+    "useCase", "budget", "setting", "vibe", "homeType",
+    "stage", "amenities", "mustHaves", "closer", "results",
+  ];
+
+  /* One view event per screen, plus dwell time on the next event. */
+  useEffect(() => {
+    if (!started) return;
+    markStepEntered();
+    track("question_view", { step, stepKey: STEP_KEYS[step] ?? String(step), inPlay });
+    return trackAbandonOnce(step, STEP_KEYS[step] ?? String(step), inPlay);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, started]);
+
+  const shownClashes = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (!clash || shownClashes.current.has(clash.id)) return;
+    shownClashes.current.add(clash.id);
+    track("contradiction_shown", {
+      contradictionId: clash.id,
+      step,
+      pairCount: clash.count,   // communities doing BOTH — not inPlay
+      inPlay,
+    });
+  }, [clash, step, inPlay]);
 
   const vibeLabel =
     step === 0 ? "Why Cabo" :
@@ -170,7 +226,64 @@ export default function QuizFlow() {
       return { ...p, mustHaves: cur.includes(v) ? cur.filter((x) => x !== v) : [...cur, v] };
     });
   const next = () => setStep((s) => s + 1);
-  const pick = (patch: Partial<Answers>) => { set(patch); setTimeout(next, 180); };
+  const pick = (patch: Partial<Answers>) => {
+    const [k, v] = Object.entries(patch)[0] ?? [];
+    track("question_answer", {
+      step, stepKey: STEP_KEYS[step] ?? String(step),
+      answer: `${k}=${String(v)}`, msOnStep: msOnStep(), inPlay,
+    });
+    set(patch);
+    setTimeout(next, 180);
+  };
+
+  /* The buyer picked a side in a contradiction. We drop the losing want
+     rather than silently down-weighting it — they told us plainly, so the
+     shortlist should visibly change. */
+  function resolveClash(which: "a" | "b") {
+    if (!clash) return;
+    track("contradiction_resolved", { contradictionId: clash.id, kept: which, step });
+    setSettled((p) => [...p, clash.id]);
+
+    const drop = which === "a" ? clash.labelB : clash.labelA;
+    const keep = which === "a" ? clash.labelA : clash.labelB;
+    setSettledNote(
+      `Got it — ${keep} stays, ${drop} comes off. I've re-ranked your shortlist around that.`
+    );
+    window.setTimeout(() => setSettledNote(""), 9000);
+
+    const dropMust = (m: string) =>
+      setA((p) => ({ ...p, mustHaves: (p.mustHaves ?? []).filter((x) => x !== m) }));
+
+    if (/walk/i.test(drop)) {
+      dropMust("walkable");
+      setA((p) => (p.setting === "walkable" ? { ...p, setting: undefined } : p));
+    } else if (/golf/i.test(drop)) {
+      dropMust("golf");
+      setA((p) => (p.setting === "golf" ? { ...p, setting: undefined } : p));
+    } else if (/gate/i.test(drop)) {
+      dropMust("gated");
+    } else if (/medical/i.test(drop)) {
+      dropMust("medical");
+    } else if (/swimmable/i.test(drop)) {
+      dropMust("swimmable");
+    } else if (/new construction/i.test(drop)) {
+      dropMust("newBuild");
+    } else if (/rental|income/i.test(drop)) {
+      dropMust("rental");
+    } else if (/quiet|solitude|radar/i.test(drop)) {
+      setA((p) => ({
+        ...p,
+        vibe: p.vibe === "private" ? undefined : p.vibe,
+        setting: p.setting === "offradar" ? undefined : p.setting,
+      }));
+    } else if (/nightlife|buzz|marina/i.test(drop)) {
+      setA((p) => ({ ...p, vibe: p.vibe === "marina" ? undefined : p.vibe }));
+    } else if (/art|old town/i.test(drop)) {
+      setA((p) => ({ ...p, vibe: p.vibe === "artsy" ? undefined : p.vibe }));
+    } else if (/surf/i.test(drop)) {
+      setA((p) => ({ ...p, vibe: p.vibe === "surf" ? undefined : p.vibe }));
+    }
+  }
 
   /* ---------------- intro ---------------- */
   if (!started) {
@@ -203,7 +316,18 @@ export default function QuizFlow() {
   );
 
   const MatchCheck = () =>
-    step > 0 ? <CompanionTip text={narrowingLine(inPlay, step)} /> : null;
+    step > 0 ? (
+      <>
+        <CompanionTip text={settledNote || narrowingLine(inPlay, step)} />
+        {clash && (
+          <ContradictionCallout
+            c={clash}
+            onKeep={resolveClash}
+            onDismiss={() => setSettled((p) => [...p, clash.id])}
+          />
+        )}
+      </>
+    ) : null;
 
   const Choice = ({ q, onPick }: { q: { stop: string; title: string; hint: string; opts: readonly Opt[] }; onPick: (v: string) => void }) => (
     <div className={card}>
@@ -228,52 +352,65 @@ export default function QuizFlow() {
     </div>
   );
 
-  async function submit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setBusy(true); setErr("");
-    const fd = new FormData(e.currentTarget);
+  /* Stage one of the offer: name + email buys the written guide.
+     Fires the same /api/quiz-submit the gate used to, so Follow Up Boss,
+     the tags, the note and the guide email are all unchanged. */
+  async function captureLead(data: { firstName: string; lastName: string; email: string }) {
     const spam = spamRef.current?.getValues() || { _website: "", _loaded: 0 };
-    const name = String(fd.get("firstName") || "").trim();
-    const payload = {
-      leadType: "quiz",
-      firstName: name,
-      lastName: String(fd.get("lastName") || "").trim(),
-      email: String(fd.get("email") || "").trim(),
-      phone: String(fd.get("phone") || "").trim(),
-      quiz: { ...a, timeline: String(fd.get("timeline") || "") },
-      matches: ranked.slice(0, 5).map((m) => ({ slug: m.c.slug, name: m.c.name, score: m.score })),
-      _website: spam._website,
-      _loaded: spam._loaded,
-    };
-    if (!payload.firstName || !payload.email) {
-      setBusy(false); setErr("First name and email are required."); return;
-    }
+    track("gate_submit", { topMatch: top?.c.name, topScore: top?.score });
+
     try {
       const r = await fetch("/api/quiz-submit", {
-        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload),
-      });
-      if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || "Something went wrong.");
-      setFirstName(name.split(" ")[0]);
-      setUnlocked(true);
-      setStep(9);
-
-      // Live AI brief. Runs after unlock so the buyer sees results immediately
-      // and the analysis fills in; a failure here never blocks the results.
-      setAiLoading(true);
-      fetch("/api/ai-brief", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ answers: { ...a, timeline: String(fd.get("timeline") || "") } }),
-      })
-        .then((r) => r.json())
-        .then((j) => { if (j?.ok && j.brief) setBrief(j.brief as AiBrief); })
-        .catch(() => {})
-        .finally(() => setAiLoading(false));
-    } catch (e2) {
-      setErr(e2 instanceof Error ? e2.message : "Something went wrong.");
-    } finally {
-      setBusy(false);
+        body: JSON.stringify({
+          leadType: "quiz",
+          firstName: data.firstName,
+          lastName: data.lastName,
+          email: data.email,
+          phone: "",
+          quiz: a,
+          matches: ranked.slice(0, 5).map((m) => ({ slug: m.c.slug, name: m.c.name, score: m.score })),
+          _website: spam._website,
+          _loaded: spam._loaded,
+        }),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok || j?.success === false) {
+        return { ok: false, error: j?.error || "Something went wrong. Try once more?" };
+      }
+      setFirstName(data.firstName.split(" ")[0]);
+      setCaptured({ firstName: data.firstName, email: data.email });
+      if (typeof j?.contactId === "number") setContactId(j.contactId);
+      return { ok: true };
+    } catch {
+      return { ok: false, error: "Couldn't reach us just then. Try once more?" };
     }
+  }
+
+  /* Stage two: the number, offered rather than demanded. Re-posts the same
+     contact so Follow Up Boss dedupes by email and simply gains the phone. */
+  async function addPhone(phone: string) {
+    if (!captured) return;
+    const spam = spamRef.current?.getValues() || { _website: "", _loaded: 0 };
+    try {
+      await fetch("/api/quiz-submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          leadType: "quiz",
+          firstName: captured.firstName,
+          lastName: "",
+          email: captured.email,
+          phone,
+          contactId,
+          quiz: a,
+          matches: ranked.slice(0, 5).map((m) => ({ slug: m.c.slug, name: m.c.name, score: m.score })),
+          _website: spam._website,
+          _loaded: spam._loaded,
+        }),
+      });
+    } catch { /* the lead is already safe; the number is a bonus */ }
   }
 
   const input =
@@ -416,86 +553,113 @@ export default function QuizFlow() {
           </div>
         )}
 
-        {/* ---------- THE CLOSER: tease #1, gate the rest ---------- */}
+        {/* ---------- THE CLOSER ----------
+             No gate here any more. The shortlist is theirs. This step earns
+             the last two things worth knowing — when, and why — while they
+             are at peak investment, and then we show them everything. */}
         {step === 8 && (
           <div className={card}>
-            <p className="label-caps text-sand-gold-dark mb-2">The Closer</p>
-            <h2 className="heading-display text-2xl md:text-3xl text-cabo-navy leading-snug mb-1">
-              Your matches are ready.
-            </h2>
-            <p className="text-cabo-slate text-sm mb-6">
-              We scored all 40 Los Cabos communities against your answers. Here's your top one:
-            </p>
+            <Header
+              stop="The Closer"
+              title="Last two, then your shortlist."
+              hint="These change how we read everything you've told us — and they're the two things I'd ask on a first call anyway."
+            />
 
-            {top && (
-              <div className="relative overflow-hidden rounded-md border-2 border-sand-gold bg-cream p-6 mb-6">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="label-caps text-sand-gold-dark text-[10px] mb-1">Your #1 Match</p>
-                    <p className="heading-display text-2xl text-cabo-navy">{top.c.name}</p>
-                    <p className="text-cabo-slate text-sm mt-1">{top.c.tagline}</p>
-                  </div>
-                  <div className="text-right flex-shrink-0">
-                    <p className="type-massive text-4xl text-sand-gold-dark leading-none">{top.score}%</p>
-                    <p className="label-caps text-[10px] text-text-muted mt-1">Match</p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div className="relative mb-6">
-              <div className="grid gap-2 blur-[5px] select-none pointer-events-none" aria-hidden>
-                {ranked.slice(1, 5).map((m) => (
-                  <div key={m.c.slug} className="flex justify-between border border-stone rounded px-4 py-3">
-                    <span className="font-semibold text-cabo-navy">{m.c.name}</span>
-                    <span className="text-sand-gold-dark font-bold">{m.score}%</span>
-                  </div>
-                ))}
-              </div>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <span className="bg-cabo-navy text-white text-xs font-semibold px-4 py-2 rounded-full shadow-lg">
-                  🔒 Your other {Math.min(4, Math.max(0, ranked.length - 1))} matches + honest tradeoffs
-                </span>
-              </div>
+            <p className="label-caps text-text-muted text-[10px] mb-3">When would you want keys in hand?</p>
+            <div className="grid sm:grid-cols-2 gap-2.5 mb-7">
+              {TIMELINES.map((t) => (
+                <button
+                  key={t.value}
+                  onClick={() => {
+                    track("question_answer", { step, stepKey: "timeline", answer: t.value, msOnStep: msOnStep() });
+                    set({ timeline: t.value });
+                  }}
+                  className={
+                    "text-left px-4 py-3 rounded-md border transition-colors " +
+                    (a.timeline === t.value
+                      ? "border-sand-gold bg-cream"
+                      : "border-stone hover:border-sand-gold/60")
+                  }
+                >
+                  <span className="font-semibold text-cabo-navy text-sm">{t.label}</span>
+                </button>
+              ))}
             </div>
 
-            <form onSubmit={submit}>
-              <SpamFields ref={spamRef} />
-              <p className="text-sm text-cabo-slate mb-4">
-                Tell us where to send the full ranked list — including what's <em>wrong</em> with each community, not just what's right.
-              </p>
-              <div className="grid sm:grid-cols-2 gap-3 mb-3">
-                <input name="firstName" placeholder="First name *" required autoComplete="given-name" className={input} />
-                <input name="lastName" placeholder="Last name" autoComplete="family-name" className={input} />
-              </div>
-              <input name="email" type="email" placeholder="Email *" required autoComplete="email" className={input + " mb-3"} />
-              <input name="phone" type="tel" placeholder="Phone (optional)" autoComplete="tel" className={input + " mb-3"} />
-              <select name="timeline" defaultValue="" required className={input + " mb-4"}>
-                <option value="" disabled>When would you want keys in hand? *</option>
-                {TIMELINES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
-              </select>
+            <p className="label-caps text-text-muted text-[10px] mb-3">And what's really behind it?</p>
+            <div className="grid gap-2.5">
+              {WHY_NOW.map((o) => (
+                <button
+                  key={o.value}
+                  onClick={() => {
+                    track("question_answer", { step, stepKey: "whyNow", answer: o.value, msOnStep: msOnStep() });
+                    setA((p) => ({ ...p, whyNow: o.value } as Answers));
+                  }}
+                  className={
+                    "text-left flex items-start gap-3 px-4 py-3 rounded-md border transition-colors " +
+                    ((a as Record<string, unknown>).whyNow === o.value
+                      ? "border-sand-gold bg-cream"
+                      : "border-stone hover:border-sand-gold/60")
+                  }
+                >
+                  <span className="text-xl leading-none mt-0.5">{o.icon}</span>
+                  <span className="font-semibold text-cabo-navy text-sm">{o.label}</span>
+                </button>
+              ))}
+            </div>
 
-              {err && (
-                <div className="mb-4 p-3 bg-sunset-coral/10 border-l-4 border-sunset-coral rounded text-sunset-coral text-sm">{err}</div>
-              )}
+            <button
+              disabled={!a.timeline}
+              onClick={() => {
+                setScoring(true);
+                track("scoring_started", { inPlay, topMatch: top?.c.name, topScore: top?.score });
+                setStep(9);
+              }}
+              className="mt-7 w-full bg-sand-gold hover:bg-sand-gold-dark text-cabo-navy font-semibold py-4 rounded-md transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {a.timeline ? "Show me my shortlist \u2192" : "Pick a timeline to finish"}
+            </button>
 
-              <button
-                type="submit"
-                disabled={busy}
-                className="w-full bg-sand-gold hover:bg-sand-gold-dark text-cabo-navy font-semibold py-4 rounded-md transition-colors disabled:opacity-60"
-              >
-                {busy ? "Scoring your matches…" : "Unlock My Full Match Report →"}
-              </button>
-              <p className="text-xs text-text-muted text-center mt-3">No spam. Unsubscribe anytime.</p>
-            </form>
-
-            <button onClick={() => setStep(7)} className="mt-5 text-sm text-text-muted hover:text-cabo-navy">← Back</button>
+            <button onClick={() => setStep(7)} className="mt-5 text-sm text-text-muted hover:text-cabo-navy">
+              \u2190 Back
+            </button>
           </div>
         )}
 
-        {step >= 9 && unlocked && (
+        {/* ---------- THE REVEAL ---------- */}
+        {step === 9 && scoring && (
+          <ScoringReveal
+            finalCount={Math.max(1, inPlay)}
+            onDone={() => {
+              setScoring(false);
+              setUnlocked(true);
+              track("result_view", { topMatch: top?.c.name, topScore: top?.score, inPlay });
+              /* The written analysis fills in behind the shortlist. A failure
+                 here must never hold up the result. */
+              setAiLoading(true);
+              fetch("/api/ai-brief", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ answers: a }),
+              })
+                .then((r) => r.json())
+                .then((j) => { if (j?.ok && j.brief) setBrief(j.brief as AiBrief); })
+                .catch(() => {})
+                .finally(() => setAiLoading(false));
+            }}
+          />
+        )}
+
+        {step >= 9 && unlocked && !scoring && (
+          <>
             <Results ranked={ranked} answers={a} firstName={firstName} brief={brief} aiLoading={aiLoading} />
-          )}
+            <GuideOffer
+              topNames={ranked.slice(0, 3).map((m) => m.c.name)}
+              onSubmit={captureLead}
+              onPhone={addPhone}
+            />
+          </>
+        )}
         </div>
 
         {/* On desktop this is the third column; on mobile the grid collapses
