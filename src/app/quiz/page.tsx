@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import QuizFlow from "@/components/quiz/QuizFlow";
+import HeroVideo from "@/components/quiz/HeroVideo";
 import { COMMUNITIES } from "@/data/quiz-communities";
 import { DEVELOPMENTS } from "@/data/quiz-developments";
 
@@ -17,6 +18,18 @@ export default function QuizPage() {
   return (
     <div className="flex-1 bg-sand-light">
       <section className="relative bg-cabo-navy bg-grain overflow-hidden">
+        {/* Land's End from the air, golden hour. Real Cabo, not a gradient. */}
+        <div className="absolute inset-x-0 top-0 h-[560px]">
+          <HeroVideo />
+          <div
+            aria-hidden
+            className="absolute inset-0"
+            style={{
+              background:
+                "linear-gradient(to bottom, rgba(8,26,46,.40) 0%, rgba(9,32,54,.68) 46%, rgba(10,37,64,.97) 92%, rgba(10,37,64,1) 100%)",
+            }}
+          />
+        </div>
         <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-sand-gold to-transparent" />
         <div className="relative z-10 max-w-5xl mx-auto px-6 md:px-10 pt-16 pb-20 md:pt-20 md:pb-24 text-center">
           <div className="inline-flex items-center gap-3 mb-6">

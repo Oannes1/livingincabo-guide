@@ -48,7 +48,7 @@ export default function VibeCard({
 
   return (
     <aside
-      className="relative overflow-hidden rounded-md min-h-[340px] lg:min-h-[440px] flex flex-col justify-end p-6 lg:p-7 transition-[background] duration-700"
+      className="relative h-full overflow-hidden rounded-[1.75rem] min-h-[340px] lg:min-h-full flex flex-col justify-end p-6 lg:p-7 ring-1 ring-cabo-navy/10 shadow-[0_1px_2px_rgba(10,37,64,.04),0_24px_56px_-28px_rgba(10,37,64,.28)] transition-[background] duration-700 ease-[cubic-bezier(.32,.72,0,1)]"
       style={{ background: shown.gradient }}
     >
       {/* outgoing photo */}

@@ -236,6 +236,26 @@ export default function QuizFlow() {
     setTimeout(next, 180);
   };
 
+  /* Two-part screens advance once both halves are answered, in either order,
+     so a single-select never behaves differently from screen to screen. */
+  const pairAdvanced = useRef(false);
+  const pickPair = (patch: Partial<Answers>) => {
+    const [k, v] = Object.entries(patch)[0] ?? [];
+    track("question_answer", {
+      step, stepKey: STEP_KEYS[step] ?? String(step),
+      answer: `${k}=${String(v)}`, msOnStep: msOnStep(), inPlay,
+    });
+    /* Advance decided OUTSIDE the updater. Scheduling it inside means React's
+       dev double-invoke runs it twice and the quiz skips a stop. The ref is a
+       second belt: one advance per screen, whatever the render count. */
+    const merged = { ...a, ...patch };
+    setA(merged);
+    if (merged.buildStage && merged.hoaTolerance && !pairAdvanced.current) {
+      pairAdvanced.current = true;
+      setTimeout(next, 220);
+    }
+  };
+
   /* The buyer picked a side in a contradiction. We drop the losing want
      rather than silently down-weighting it — they told us plainly, so the
      shortlist should visibly change. */
@@ -303,9 +323,16 @@ export default function QuizFlow() {
     );
   }
 
-  const card = "bg-white rounded-md shadow-2xl p-7 md:p-10";
+  /* Outer shell / inner core. The card sits in a tray rather than flat on the
+     ground, which is what stops it reading as a generic white rectangle. */
+  const card =
+    "bg-white rounded-[1.75rem] p-7 md:p-10 ring-1 ring-cabo-navy/[0.06] " +
+    "shadow-[0_1px_2px_rgba(10,37,64,.04),0_24px_56px_-28px_rgba(10,37,64,.28)]";
   const optBtn =
-    "w-full text-left border border-stone rounded-md px-5 py-4 hover:border-sand-gold hover:bg-sand-gold-subtle transition-colors flex items-start gap-4 group";
+    "w-full text-left rounded-[1.15rem] px-5 py-4 flex items-start gap-4 group " +
+    "bg-white ring-1 ring-cabo-navy/[0.07] hover:ring-sand-gold/70 hover:bg-sand-gold-subtle " +
+    "shadow-[0_1px_1px_rgba(10,37,64,.03)] hover:shadow-[0_6px_18px_-8px_rgba(10,37,64,.22)] " +
+    "transition-all duration-500 ease-[cubic-bezier(.32,.72,0,1)] active:scale-[.99]";
 
   const Header = ({ stop, title, hint }: { stop: string; title: string; hint?: string }) => (
     <div className="mb-6">
@@ -420,7 +447,7 @@ export default function QuizFlow() {
     <div className="max-w-6xl mx-auto">
       <AgentHeader />
 
-      <div className="grid lg:grid-cols-[210px_minmax(0,1fr)_300px] gap-5">
+      <div className="grid lg:grid-cols-[220px_minmax(0,1fr)_320px] gap-5 items-stretch">
         <div className="hidden lg:block"><RouteRail step={step} /></div>
 
         <div>
@@ -456,7 +483,7 @@ export default function QuizFlow() {
               hint="This is the single biggest fork in Cabo right now — 33 of the projects we track are still pre-construction." />
             <div className="grid gap-3">
               {BUILD_STAGE.map((o) => (
-                <button key={o.value} onClick={() => set({ buildStage: o.value })}
+                <button key={o.value} onClick={() => pickPair({ buildStage: o.value })}
                   className={`${optBtn} ${a.buildStage === o.value ? "border-ocean-teal bg-ocean-teal/10" : ""}`}>
                   <span className="text-2xl leading-none mt-0.5">{o.icon}</span>
                   <span>
@@ -470,7 +497,7 @@ export default function QuizFlow() {
             <p className="label-caps text-sand-gold-dark mt-7 mb-3 text-[11px]">And the monthly carry?</p>
             <div className="grid sm:grid-cols-2 gap-2">
               {HOA.map((o) => (
-                <button key={o.value} onClick={() => set({ hoaTolerance: o.value })}
+                <button key={o.value} onClick={() => pickPair({ hoaTolerance: o.value })}
                   className={`text-left border rounded-md px-4 py-3 text-sm transition-colors ${
                     a.hoaTolerance === o.value ? "border-ocean-teal bg-ocean-teal/10 text-cabo-navy font-medium" : "border-stone hover:border-sand-gold text-cabo-slate"
                   }`}>
@@ -480,13 +507,9 @@ export default function QuizFlow() {
             </div>
 
             <MatchCheck />
-            <div className="flex items-center gap-3 mt-6">
-              <button onClick={() => setStep(4)} className="text-sm text-text-muted hover:text-cabo-navy">← Back</button>
-              <button onClick={next} disabled={!a.buildStage}
-                className="ml-auto bg-cabo-navy hover:bg-cabo-navy-deep text-white font-semibold px-7 py-3 rounded-md transition-colors disabled:opacity-40">
-                Continue →
-              </button>
-            </div>
+            <button onClick={() => setStep(4)} className="mt-6 text-sm text-text-muted hover:text-cabo-navy">
+              ← Back
+            </button>
           </div>
         )}
 
@@ -666,7 +689,7 @@ export default function QuizFlow() {
             and it lands directly under the question, which is where it wants
             to be on a phone anyway. */}
         {step < 9 && (
-          <div className="lg:sticky lg:top-6 self-start">
+          <div className="lg:sticky lg:top-6 lg:self-stretch">
             <VibeCard vibe={vibe} label={vibeLabel} />
           </div>
         )}

@@ -44,7 +44,7 @@ export default function RouteRail({ step }: { step: number }) {
   const progress = Math.min(Math.max(step / (count - 1), 0), 1);
 
   return (
-    <aside className="bg-white/95 backdrop-blur border border-stone rounded-md p-5 lg:sticky lg:top-6">
+    <aside className="bg-white/95 rounded-[1.75rem] p-6 ring-1 ring-cabo-navy/[0.06] shadow-[0_1px_2px_rgba(10,37,64,.04),0_24px_56px_-28px_rgba(10,37,64,.28)] lg:sticky lg:top-6 h-full">
       <div className="flex items-baseline justify-between mb-4">
         <p className="label-caps text-cabo-navy text-[11px]">Your Route</p>
         <p className="label-caps text-sand-gold-dark text-[11px] tabular-nums">
