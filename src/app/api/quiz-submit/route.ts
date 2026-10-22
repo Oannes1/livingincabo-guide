@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
+import { checkBotId } from "botid/server";
 import { checkForSpam } from "@/lib/spam-protection";
 import { createFUBContact } from "@/lib/fub";
 import { sendLeadAlertEmail, sendGuideEmail, sendAgentNewLead } from "@/lib/email";
 import { signBrief } from "@/lib/brief-token";
+import { quizSubmitSchema, validationMessage } from "@/lib/validation";
 
 const LABEL: Record<string, Record<string, string>> = {
   useCase: {
@@ -87,56 +89,55 @@ const money = (n?: number) =>
 
 export async function POST(request: Request) {
   try {
+    // This route emails whatever address it is given, so automated
+    // traffic is turned away before anything is sent.
+    const verdict = await checkBotId();
+    if (verdict.isBot) {
+      return NextResponse.json(
+        { success: false, error: "We couldn't verify that request. Please refresh and try again." },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json();
 
     const spam = checkForSpam(request, body);
     if (!spam.ok) {
-      console.warn(`[quiz] spam rejected (${spam.reason}) — email=${String(body.email || "")}`);
+      console.warn(`[quiz] spam rejected (${spam.reason})`);
       return NextResponse.json({ success: true });
     }
 
-    const firstName = String(body.firstName || "").trim();
-    const lastName = String(body.lastName || "").trim();
-    const email = String(body.email || "").trim().toLowerCase();
-    const phone = String(body.phone || "").trim();
-    const quiz = (body.quiz ?? {}) as Record<string, unknown>;
-    const matches = (Array.isArray(body.matches) ? body.matches : []) as {
-      slug: string; name: string; score: number;
-    }[];
-
-    if (!firstName || !email) {
+    const parsed = quizSubmitSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { success: false, error: "First name and email are required." },
+        { success: false, error: validationMessage(parsed.error) },
         { status: 400 }
       );
     }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return NextResponse.json(
-        { success: false, error: "Please enter a valid email address." },
-        { status: 400 }
-      );
-    }
+    const { firstName, lastName, email, phone, quiz, matches } = parsed.data;
 
     /* A guide request is a lighter lead than a completed quiz: one community,
        no answers. It still goes through the same pipeline so nothing is lost. */
-    const isGuide = String(body.leadType || "") === "neighborhood-guide";
-    const guideName = String((body.matches?.[0]?.name) || "").trim() || "Los Cabos";
+    const isGuide = parsed.data.leadType === "neighborhood-guide";
+    const guideName = matches[0]?.name || "Los Cabos";
 
     const at = new Date().toISOString();
     const L = (k: string, v: unknown) => LABEL[k]?.[String(v)] || String(v ?? "n/a");
-    const musts = Array.isArray(quiz.mustHaves) ? (quiz.mustHaves as string[]) : [];
+    const musts = quiz.mustHaves ?? [];
 
     const top = matches[0];
     const briefToken = signBrief({ firstName, lastName, email, phone, quiz, matches, at });
-    const briefUrl = `https://quiz.livingincabo.com/brief/${briefToken}`;
+    const briefUrl = briefToken
+      ? `https://quiz.livingincabo.com/brief/${briefToken}`
+      : "(brief link unavailable: BRIEF_SECRET is not set in Vercel)";
 
     /* Built once and used by BOTH the Follow Up Boss note and the email to
        Aaron. They used to be written separately, which is how the email ended
        up thinner than the CRM note nobody reads first. */
-    const amenityList = Array.isArray(quiz.amenities) ? (quiz.amenities as string[]) : [];
+    const amenityList = quiz.amenities ?? [];
     const answerRows: [string, string][] = [
       ["Why Cabo", L("useCase", quiz.useCase)],
-      ["Budget", `${money(quiz.budgetMin as number)} – ${money(quiz.budgetMax as number)}`],
+      ["Budget", `${money(quiz.budgetMin)} – ${money(quiz.budgetMax)}`],
       ["Setting", L("setting", quiz.setting)],
       ["Vibe", L("vibe", quiz.vibe)],
       ["Home type", L("homeType", quiz.homeType)],
@@ -246,7 +247,8 @@ export async function POST(request: Request) {
       });
     }
 
-    return NextResponse.json({ success: true, contactId: fub.contactId, briefUrl });
+    // The brief link is for the agent only; it is not echoed back to the browser.
+    return NextResponse.json({ success: true, contactId: fub.contactId });
   } catch (error) {
     console.error("[quiz] error:", error);
     return NextResponse.json(
