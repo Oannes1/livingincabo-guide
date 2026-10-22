@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
+import { checkBotId } from "botid/server";
 import { checkForSpam } from "@/lib/spam-protection";
 import { createFUBContact } from "@/lib/fub";
 import { sendLeadAlertEmail, sendGuideEmail, sendSellerEmail } from "@/lib/email";
-
-type LeadType = "buyer" | "buyer-quiz" | "seller";
+import { submitSchema, validationMessage } from "@/lib/validation";
 
 const QUIZ_LABELS: Record<string, Record<string, string>> = {
   goal: {
@@ -44,6 +44,16 @@ function describeQuiz(quiz: Record<string, string>): string {
 
 export async function POST(request: Request) {
   try {
+    // This route emails whatever address it is given, so automated
+    // traffic is turned away before anything is sent.
+    const verdict = await checkBotId();
+    if (verdict.isBot) {
+      return NextResponse.json(
+        { success: false, error: "We couldn't verify that request. Please refresh and try again." },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json();
 
     // Spam check — honeypot + timing + rate limit only.
@@ -52,44 +62,20 @@ export async function POST(request: Request) {
     const spam = checkForSpam(request, body);
 
     if (!spam.ok) {
-      console.warn(
-        `[submit] spam rejected (${spam.reason}) — email=${String(
-          body.email || ""
-        )}`
-      );
+      console.warn(`[submit] spam rejected (${spam.reason})`);
       // Return 200 to not reveal our spam logic to bots
       return NextResponse.json({ success: true });
     }
 
-    const leadType: LeadType = ["buyer", "buyer-quiz", "seller"].includes(
-      String(body.leadType)
-    )
-      ? (String(body.leadType) as LeadType)
-      : "buyer";
-
-    const firstName = String(body.firstName || "").trim();
-    const lastName = String(body.lastName || "").trim();
-    const email = String(body.email || "").trim().toLowerCase();
-    const phone = String(body.phone || "").trim();
-    const propertyLocation = String(body.propertyLocation || "").trim();
-    const quiz =
-      body.quiz && typeof body.quiz === "object"
-        ? (body.quiz as Record<string, string>)
-        : null;
-
-    if (!firstName || !email) {
+    const parsed = submitSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { success: false, error: "First name and email are required." },
+        { success: false, error: validationMessage(parsed.error) },
         { status: 400 }
       );
     }
-
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return NextResponse.json(
-        { success: false, error: "Please enter a valid email address." },
-        { status: 400 }
-      );
-    }
+    const { leadType, firstName, lastName, email, phone, propertyLocation } = parsed.data;
+    const quiz = parsed.data.quiz ?? null;
 
     const stamp = new Date().toISOString();
 

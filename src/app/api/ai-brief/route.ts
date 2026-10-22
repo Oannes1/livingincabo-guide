@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
+import { checkBotId } from "botid/server";
 import { matchCommunities, matchDevelopments, type Answers } from "@/lib/match";
+import { aiBriefSchema } from "@/lib/validation";
 
 /* ------------------------------------------------------------------ */
 /*  Live AI match brief                                                */
@@ -36,8 +38,18 @@ const Brief = z.object({
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
-    const a = (body.answers ?? {}) as Answers;
+    // Each call spends real Opus tokens, so bots never reach the model.
+    // The per-IP rate limit lives in the Vercel Firewall (see SECURITY.md).
+    const verdict = await checkBotId();
+    if (verdict.isBot) {
+      return NextResponse.json({ ok: false, error: "blocked" }, { status: 403 });
+    }
+
+    const parsed = aiBriefSchema.safeParse(await req.json());
+    if (!parsed.success) {
+      return NextResponse.json({ ok: false, error: "invalid" }, { status: 400 });
+    }
+    const a: Answers = parsed.data.answers;
 
     const communities = matchCommunities(a).slice(0, 10);
     const commSlugs = communities.map((c) => c.c.slug);
