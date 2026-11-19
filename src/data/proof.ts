@@ -64,7 +64,7 @@ export const CREDENTIALS: ProofStat[] = [
   },
   {
     figure: "10",
-    label: "HGTV episodes — Mexico Life and Beachfront Bargain Hunt",
+    label: "HGTV episodes: Mexico Life and Beachfront Bargain Hunt",
     source: "ronival.com — 8 Mexico Life + 2 Beachfront Bargain Hunt",
   },
   {

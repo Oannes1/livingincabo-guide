@@ -19,6 +19,16 @@ export const emailField = z.string().trim().toLowerCase().max(254).pipe(z.email(
 
 export const phoneField = z.string().trim().max(40).default("");
 
+/** A phone we can actually dial: 7 to 15 digits, only phone punctuation. */
+export const requiredPhone = z
+  .string()
+  .trim()
+  .max(40)
+  .refine((s) => {
+    const digits = s.replace(/\D/g, "").length;
+    return /^[\d\s()+.\-]+$/.test(s) && digits >= 7 && digits <= 15;
+  }, "Please enter a valid phone number, including area code.");
+
 /** Quiz answers. Unknown keys are stripped so only these reach the prompt or the CRM. */
 export const answersSchema = z.object({
   useCase: short.optional(),
@@ -62,7 +72,8 @@ export const submitSchema = z.object({
   firstName: personName(80).pipe(z.string().min(1)),
   lastName: personName(80).default(""),
   email: emailField,
-  phone: phoneField,
+  // The guide page needs a number Aaron can call; the form requires it too.
+  phone: requiredPhone,
   propertyLocation: personName(200).default(""),
   quiz: z
     .record(z.string().max(40), z.string().max(80))
@@ -76,6 +87,7 @@ export function validationMessage(error: z.ZodError): string {
   const field = issue?.path[0];
   if (issue?.code === "custom" && (field === "firstName" || field === "lastName")) return issue.message;
   if (field === "email") return "Please enter a valid email address.";
+  if (field === "phone") return "Please enter a valid phone number, including area code.";
   if (field === "firstName") return "First name and email are required.";
   return "Please check your details and try again.";
 }

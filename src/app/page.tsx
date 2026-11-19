@@ -1,323 +1,366 @@
+import Image from "next/image";
 import GuideForm from "@/components/GuideForm";
-import QuizSection from "@/components/QuizSection";
-import SellerForm from "@/components/SellerForm";
+import StickyCta from "@/components/StickyCta";
+import HeroVideo from "@/components/quiz/HeroVideo";
+import { CREDENTIALS, TESTIMONIALS } from "@/data/proof";
 
-const CHAPTERS = [
-  { num: "01", title: "Can Americans Legally Own Property in Mexico?", desc: "The short answer is yes. The long answer is the framework that's protected over 1 million American owners since 1971." },
-  { num: "02", title: "The Fideicomiso, Explained Like You're Five", desc: "The 3-party bank trust structure, what it costs, what happens if the bank fails, and why it's not a loophole." },
-  { num: "03", title: "The Restricted Zone and Why It Matters", desc: "The 50-kilometer rule, where it applies, and how to navigate it as a coastal buyer." },
-  { num: "04", title: "The Step-by-Step Buying Process", desc: "From accepted offer to keys in hand in 40-45 days. Every step, every document, every gotcha." },
-  { num: "05", title: "Closing Costs and Fees — The Real Numbers", desc: "A full itemized breakdown of the 4-8% closing costs. No surprises at the notary's office." },
-  { num: "06", title: "Where to Buy — The 5 Regions of Los Cabos", desc: "Cabo San Lucas, the Corridor, San Jose del Cabo, East Cape, and Pacific Side. Pricing, lifestyle, and who each region is for." },
-  { num: "07", title: "The 10 Most Expensive Mistakes Buyers Make", desc: "Every one of them learned the hard way by someone else. Don't be the next one." },
-  { num: "08", title: "What Life Actually Costs Once You Live There", desc: "The real monthly budget for a comfortable life in Cabo — housing, food, healthcare, and the gotchas nobody mentions." },
-  { num: "09", title: "Myths That Cost Buyers Money", desc: "Seven stubborn misconceptions about Mexican real estate — and what's actually true." },
-  { num: "10", title: "Checklists: 30-60-90 Plan + the 27-Point Pre-Offer Filter", desc: "Your purchase timeline, plus the exact 27 items our team verifies on every property before a client signs anything." },
+/* ------------------------------------------------------------------ */
+/*  guide.livingincabo.com: a lead squeeze page with one job.          */
+/*                                                                     */
+/*  Hook (hero), story (Aaron), offer (the guide), and nothing that    */
+/*  leaks the visitor elsewhere before they opt in. Every claim on the */
+/*  page is either in the PDF itself or sourced in src/data/proof.ts.  */
+/* ------------------------------------------------------------------ */
+
+const FORM_TOP = "get-the-guide";
+const FORM_BOTTOM = "get-the-guide-final";
+
+/* Straight from Chapter 7 of the guide: the mistakes, and what's true. */
+const MISTAKES = [
+  {
+    belief: "“I’ll sort out the legal side once I find the house.”",
+    truth:
+      "How you hold title (a fideicomiso bank trust or a Mexican corporation) decides what you can do with the property. Choose it before you make an offer, not after.",
+  },
+  {
+    belief: "“Closing costs will be about what I’d pay back home.”",
+    truth:
+      "In Mexico the buyer pays them, and they run 4 to 8 percent. On a $500,000 condo that is $20,000 to $40,000 you need on top of the price.",
+  },
+  {
+    belief: "“I’ll just wire the deposit to the seller.”",
+    truth:
+      "Money should move through licensed escrow, with a notario público overseeing the closing. Nearly every horror story skips one of those steps.",
+  },
 ];
 
-const PAIN_POINTS = [
-  {
-    title: "You've read a dozen articles and you're more confused than when you started.",
-    body: "Every travel blog says something different about fideicomisos, closing costs, and restricted zones. You need one source that actually knows.",
-  },
-  {
-    title: "You're worried you'll get taken advantage of as a foreigner.",
-    body: "The Mexican legal system has real protections for foreign buyers — but only if you know what to ask for and who to work with.",
-  },
-  {
-    title: "You don't want to waste a trip and a small fortune figuring this out the hard way.",
-    body: "The buyers who get burned are the ones who show up unprepared. This guide is the preparation.",
-  },
+const PAGES = [
+  { src: "/images/guide/page-14.jpg", caption: "Every closing cost, in dollars" },
+  { src: "/images/guide/page-16.jpg", caption: "The 5 regions, with real prices" },
+  { src: "/images/guide/page-29.jpg", caption: "The 27-point pre-offer checklist" },
+];
+
+const CHAPTERS = [
+  "Can Americans legally own property in Mexico?",
+  "The fideicomiso, explained in plain English",
+  "The restricted zone and why it matters",
+  "The step-by-step buying process, offer to keys",
+  "Closing costs and fees: the real numbers",
+  "Where to buy: the 5 regions of Los Cabos",
+  "The 10 most expensive mistakes buyers make",
+  "What life actually costs once you live there",
+  "Myths that cost buyers money",
+  "Checklists: your 30-60-90 day plan and the 27-point pre-offer filter",
+];
+
+const REGIONS = [
+  { name: "Cabo San Lucas", note: "Marina, nightlife, walk to everything", img: "/images/quiz/guide/cabo-san-lucas.jpg" },
+  { name: "The Corridor", note: "Resorts, golf and the calmest beaches", img: "/images/quiz/guide/palmilla.jpg" },
+  { name: "San José del Cabo", note: "Art district, old town, closest to the airport", img: "/images/quiz/guide/san-jose-del-cabo.jpg" },
+  { name: "East Cape", note: "Quiet, wild, off the grid", img: "/images/quiz/guide/east-cape.jpg" },
+  { name: "Pacific Side", note: "Surf towns and Todos Santos", img: "/images/quiz/guide/todos-santos.jpg" },
 ];
 
 const FAQS = [
   {
     q: "Can Americans and Canadians really own property in Cabo?",
-    a: "Yes — 100% legally, with full rights to sell, rent, remodel, and pass to heirs. Because Los Cabos sits in Mexico's coastal \"restricted zone,\" foreigners hold title through a fideicomiso (a renewable bank trust) or a Mexican corporation. Chapters 1-3 of the guide explain both in plain English.",
+    a: "Yes, legally, with full rights to sell, rent, remodel and leave it to your heirs. Because Los Cabos is in Mexico’s coastal restricted zone, foreigners hold title through a fideicomiso (a renewable bank trust) or a Mexican corporation. Chapters 1 to 3 explain both.",
   },
   {
     q: "What are closing costs in Los Cabos?",
-    a: "Plan for roughly 4-8% of the purchase price, covering acquisition tax, notario fees, trust setup, escrow, and registration. Chapter 5 breaks it down line by line, in dollars.",
+    a: "Plan on roughly 4 to 8 percent of the price, covering acquisition tax, notario fees, trust setup, escrow and registration. Chapter 5 breaks it down line by line.",
   },
   {
     q: "Is buying in Mexico safe?",
-    a: "It is when the title is verified, the money moves through licensed escrow, and a notario publico oversees closing. Nearly every horror story traces back to skipping one of those three steps — the 27-point checklist in Chapter 10 makes sure you never do.",
+    a: "It is when the title is verified, the money moves through licensed escrow and a notario público oversees the closing. The 27-point checklist in Chapter 10 makes sure none of those get skipped.",
   },
   {
     q: "Can I finance, or is it cash only?",
-    a: "Most purchases are cash, but developer financing and cross-border mortgage options exist. The guide covers when each makes sense.",
+    a: "Most purchases are cash, but developer financing and cross-border mortgages exist. The guide covers when each makes sense.",
+  },
+  {
+    q: "Why do you ask for my phone number?",
+    a: "Most buyers end up with a question the guide can’t answer for their exact situation. Your number lets our team answer it. We never sell or share it.",
   },
 ];
 
 export default function Home() {
+  const quotes = [TESTIMONIALS[0], TESTIMONIALS[2], TESTIMONIALS[1]];
+
   return (
-    <div className="flex-1 bg-sand-light">
-      {/* ─── HERO with form above the fold ─── */}
-      <section className="relative bg-cabo-navy bg-grain overflow-hidden">
-        <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-sand-gold to-transparent" />
+    <div className="flex-1 bg-sand-light pb-24 lg:pb-0">
+      {/* ─── HERO: the hook, with the form on the first screen ─── */}
+      <section className="relative isolate overflow-hidden bg-cabo-navy-deep">
+        <HeroVideo className="-z-10" />
+        <div className="absolute inset-0 -z-10 bg-gradient-to-b from-cabo-navy-deep/80 via-cabo-navy-deep/55 to-cabo-navy-deep/90 lg:bg-gradient-to-r lg:from-cabo-navy-deep/90 lg:via-cabo-navy-deep/60 lg:to-cabo-navy-deep/30" />
 
-        <div className="relative z-10 max-w-6xl mx-auto px-6 md:px-10 pt-16 pb-20 md:pt-20 md:pb-24">
-          <div className="grid grid-cols-1 lg:grid-cols-[1.15fr_0.85fr] gap-12 items-center">
-            {/* Left: pitch */}
+        <div className="mx-auto max-w-6xl px-4 pb-14 pt-6 sm:px-6 lg:px-10 lg:pb-24 lg:pt-8">
+          <p className="mb-10 text-sm font-semibold tracking-wide text-white/90 lg:mb-16">
+            Living In Cabo <span className="font-normal text-white/60">with Ronival Real Estate</span>
+          </p>
+
+          <div className="grid items-center gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:gap-14">
             <div>
-              <div className="flex items-center gap-3 mb-6">
-                <div className="line-accent" />
-                <p className="label-caps text-sand-gold">Living In Cabo · Buyer&apos;s Guide</p>
-              </div>
-
-              <h1 className="heading-display text-4xl md:text-6xl text-white leading-[1.05] mb-6">
-                Buy Your Cabo Home the{" "}
-                <span className="text-gradient-gold heading-editorial italic">Safe</span> Way —
-                Not the Expensive Way
+              <p className="mb-4 inline-block rounded-full bg-white/10 px-3 py-1 text-sm font-medium text-white ring-1 ring-white/20 backdrop-blur">
+                Free guide for US and Canadian buyers
+              </p>
+              <h1 className="font-display text-[2.4rem] font-semibold leading-[1.05] text-white sm:text-5xl lg:text-[3.6rem]">
+                Buying in Cabo? Read this before you wire a single dollar.
               </h1>
-
-              <p className="text-lg md:text-xl text-white/80 font-light leading-relaxed mb-8 max-w-xl">
-                The No-BS Guide to Buying Property in Mexico: 33 pages covering every legal
-                step, every closing cost, and every mistake buyers make — including the
-                27-point pre-offer checklist we run with every client.
+              <p className="mt-5 max-w-xl text-lg leading-relaxed text-white/85 lg:text-xl">
+                The 33-page guide we hand every client: how foreigners legally own beachfront, what
+                closing really costs, and the 27-point checklist we run before anyone signs.
               </p>
 
-              <ul className="space-y-3 mb-10">
+              <ul className="mt-7 hidden space-y-3 text-white/90 lg:block">
                 {[
-                  ["The fideicomiso, finally explained", "how foreigners hold beachfront title and why it's safer than you think"],
-                  ["True closing costs in dollars", "every fee itemized, so nothing surprises you at the notario"],
-                  ["The 27-point pre-offer checklist", "including the ejido land red flags that have cost buyers everything"],
-                  ["The 5 regions of Los Cabos", "what your budget buys and which region actually fits you"],
-                ].map(([bold, rest]) => (
-                  <li key={bold} className="flex items-start gap-3 text-white/90">
-                    <span className="flex-shrink-0 w-6 h-6 rounded-full bg-ocean-teal flex items-center justify-center mt-0.5">
-                      <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                      </svg>
-                    </span>
-                    <span>
-                      <strong className="text-white">{bold}</strong> — {rest}
-                    </span>
+                  "How the fideicomiso works, and why it’s safer than it sounds",
+                  "Every closing cost itemized, so the notario holds no surprises",
+                  "The land and title red flags that have cost buyers everything",
+                ].map((t) => (
+                  <li key={t} className="flex gap-3">
+                    <Check />
+                    <span>{t}</span>
                   </li>
                 ))}
               </ul>
-
-              {/* Social proof bar */}
-              <div className="flex flex-wrap items-center gap-x-8 gap-y-4 pt-6 border-t border-white/10">
-                <div>
-                  <p className="type-massive text-sand-gold text-3xl">1M+</p>
-                  <p className="text-white/60 text-xs uppercase tracking-wider mt-1">Americans own in Mexico</p>
-                </div>
-                <div className="h-10 w-px bg-white/10 hidden md:block" />
-                <div>
-                  <p className="type-massive text-sand-gold text-3xl">50+</p>
-                  <p className="text-white/60 text-xs uppercase tracking-wider mt-1">Years of legal protection</p>
-                </div>
-                <div className="h-10 w-px bg-white/10 hidden md:block" />
-                <div>
-                  <p className="type-massive text-sand-gold text-3xl">#1</p>
-                  <p className="text-white/60 text-xs uppercase tracking-wider mt-1">Brokerage partner in Baja</p>
-                </div>
-              </div>
             </div>
 
-            {/* Right: the form, above the fold */}
-            <div id="get-the-guide">
+            <div id={FORM_TOP} className="scroll-mt-6">
               <GuideForm />
             </div>
           </div>
         </div>
       </section>
 
-      {/* ─── PAIN POINTS ─── */}
-      <section className="py-20 md:py-24 bg-sand-light">
-        <div className="max-w-6xl mx-auto px-6 md:px-10">
-          <div className="max-w-3xl mb-14">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="line-accent" />
-              <p className="label-caps text-sand-gold-dark">The Problem</p>
+      {/* ─── PROOF BAR ─── */}
+      <section className="border-b border-divider bg-white">
+        <div className="mx-auto grid max-w-6xl grid-cols-1 divide-y divide-divider px-4 sm:grid-cols-3 sm:divide-x sm:divide-y-0 sm:px-6 lg:px-10">
+          {CREDENTIALS.map((c) => (
+            <div key={c.label} className="flex items-baseline gap-3 py-5 sm:flex-col sm:items-center sm:gap-1 sm:text-center">
+              <p className="w-20 flex-shrink-0 whitespace-nowrap font-display text-3xl font-semibold text-cabo-navy sm:w-auto">{c.figure}</p>
+              <p className="text-sm text-cabo-slate">{c.label}</p>
             </div>
-            <h2 className="heading-display text-4xl md:text-5xl text-cabo-navy leading-tight">
-              Most buyers show up to Mexico with a cashier&apos;s check and a vague idea of what they&apos;re doing.
-            </h2>
-            <p className="text-cabo-slate mt-6 text-lg leading-relaxed">
-              Then they spend the next three months learning expensive lessons the hard way. This guide is the antidote.
-            </p>
-          </div>
+          ))}
+        </div>
+      </section>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {PAIN_POINTS.map((point, i) => (
-              <div key={i} className="bg-white p-8 rounded-md border border-stone border-inset card-hover">
-                <p className="type-massive text-sand-gold text-5xl mb-4">{String(i + 1).padStart(2, "0")}</p>
-                <h3 className="heading-display text-xl text-cabo-navy mb-3 leading-snug">{point.title}</h3>
-                <p className="text-cabo-slate text-sm leading-relaxed">{point.body}</p>
+      {/* ─── FALSE BELIEFS ─── */}
+      <section className="py-16 lg:py-24">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-10">
+          <h2 className="max-w-3xl font-display text-3xl font-semibold leading-tight text-cabo-navy lg:text-[2.75rem]">
+            Three beliefs that cost buyers the most money in Mexico
+          </h2>
+          <p className="mt-4 max-w-2xl text-lg text-cabo-slate">
+            All three are on the guide&apos;s list of the ten most expensive mistakes buyers make.
+          </p>
+
+          <div className="mt-10 grid gap-5 lg:grid-cols-3">
+            {MISTAKES.map((m) => (
+              <div key={m.belief} className="rounded-2xl bg-white p-6 ring-1 ring-divider lg:p-7">
+                <p className="text-lg font-semibold leading-snug text-cabo-navy">{m.belief}</p>
+                <p className="mt-4 border-t border-divider pt-4 text-[15px] leading-relaxed text-cabo-slate">
+                  <span className="font-semibold text-ocean-teal">What&apos;s actually true: </span>
+                  {m.truth}
+                </p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ─── WHAT'S INSIDE ─── */}
-      <section className="py-20 md:py-24 bg-cream">
-        <div className="max-w-6xl mx-auto px-6 md:px-10">
-          <div className="max-w-3xl mb-14">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="line-accent" />
-              <p className="label-caps text-sand-gold-dark">What&apos;s Inside</p>
+      {/* ─── LOOK INSIDE: the real pages, not a mockup ─── */}
+      <section className="bg-cream py-16 lg:py-24">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-10">
+          <div className="grid gap-12 lg:grid-cols-[0.85fr_1.15fr] lg:items-center">
+            <div>
+              <h2 className="font-display text-3xl font-semibold leading-tight text-cabo-navy lg:text-[2.75rem]">
+                Look inside the guide
+              </h2>
+              <p className="mt-4 text-lg text-cabo-slate">
+                Written by the team that closes these deals, with real 2026 numbers. Ten chapters:
+              </p>
+              <ol className="mt-6 space-y-2.5">
+                {CHAPTERS.map((c, i) => (
+                  <li key={c} className="flex gap-3 text-cabo-navy">
+                    <span className="w-6 flex-shrink-0 text-right font-semibold text-sand-gold-dark">{i + 1}.</span>
+                    <span>{c}</span>
+                  </li>
+                ))}
+              </ol>
+              <a
+                href={`#${FORM_TOP}`}
+                className="mt-8 inline-block rounded-lg bg-cta px-7 py-4 text-lg font-bold text-white shadow-lg shadow-cta/25 transition hover:bg-cta-dark"
+              >
+                Send me the free guide
+              </a>
             </div>
-            <h2 className="heading-display text-4xl md:text-5xl text-cabo-navy leading-tight">
-              Ten chapters. <span className="heading-editorial italic text-sand-gold-dark">Zero fluff.</span>
-            </h2>
-            <p className="text-cabo-slate mt-6 text-lg leading-relaxed">
-              Everything you need to know before making an offer on a property in Mexico — written by a team that has closed hundreds of these transactions.
-            </p>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
-            {CHAPTERS.map((chapter) => (
-              <div key={chapter.num} className="flex gap-5 group">
-                <div className="flex-shrink-0">
-                  <p className="heading-display text-3xl text-sand-gold leading-none">{chapter.num}</p>
-                </div>
-                <div className="flex-1 border-t border-stone pt-2">
-                  <h3 className="font-semibold text-cabo-navy mb-1 leading-snug">{chapter.title}</h3>
-                  <p className="text-cabo-slate text-sm leading-relaxed">{chapter.desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="text-center mt-14">
-            <a
-              href="#get-the-guide"
-              className="inline-flex items-center gap-2 bg-sand-gold hover:bg-sand-gold-dark text-cabo-navy font-semibold px-8 py-4 rounded-md transition-colors shadow-xl"
-            >
-              Get the Free Guide
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-              </svg>
-            </a>
-          </div>
-        </div>
-      </section>
-
-      {/* ─── QUIZ ─── */}
-      <section id="quiz" className="py-20 md:py-24 bg-cabo-navy bg-grain relative overflow-hidden">
-        <div className="relative z-10 max-w-6xl mx-auto px-6 md:px-10">
-          <div className="text-center mb-12">
-            <div className="inline-flex items-center gap-3 mb-4">
-              <div className="h-px w-10 bg-sand-gold" />
-              <p className="label-caps text-sand-gold">The 60-Second Quiz</p>
-              <div className="h-px w-10 bg-sand-gold" />
-            </div>
-            <h2 className="heading-display text-4xl md:text-5xl text-white leading-tight max-w-3xl mx-auto">
-              Not sure where in Cabo you belong?
-            </h2>
-            <p className="text-white/70 text-lg mt-4 max-w-2xl mx-auto">
-              Answer four questions and we&apos;ll match you with the communities that fit your
-              budget, lifestyle, and timeline.
-            </p>
-          </div>
-
-          <QuizSection />
-        </div>
-      </section>
-
-      {/* ─── SOCIAL PROOF ─── */}
-      <section className="py-20 md:py-24 bg-cream">
-        <div className="max-w-5xl mx-auto px-6 md:px-10">
-          <div className="bg-white border border-stone rounded-md p-8 md:p-12">
-            <p className="heading-editorial text-2xl md:text-3xl text-cabo-navy italic leading-relaxed mb-6">
-              &ldquo;Living In Cabo partners with Ronival — the largest and most trusted real estate brokerage in Baja California Sur. Our team has guided hundreds of Americans and Canadians through the buying process in Los Cabos, and every chapter of this guide is built on what we&apos;ve seen work and what we&apos;ve seen fail.&rdquo;
-            </p>
-            <div className="flex items-center gap-4 pt-6 border-t border-divider">
-              <div className="w-12 h-12 rounded-full bg-sand-gold flex items-center justify-center text-cabo-navy font-bold text-lg">
-                LC
-              </div>
-              <div>
-                <p className="text-cabo-navy font-semibold">Living In Cabo</p>
-                <p className="text-sand-gold-dark text-sm">In partnership with Ronival Real Estate</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ─── SELLERS ─── */}
-      <section id="sellers" className="py-20 md:py-24 bg-sand-warm">
-        <div className="max-w-6xl mx-auto px-6 md:px-10 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-          <div>
-            <div className="flex items-center gap-3 mb-4">
-              <div className="line-accent" />
-              <p className="label-caps text-sand-gold-dark">For Cabo Homeowners</p>
-            </div>
-            <h2 className="heading-display text-4xl md:text-5xl text-cabo-navy leading-tight mb-6">
-              Already own in Cabo? Find out what it&apos;s worth — <span className="heading-editorial italic text-sand-gold-dark">and what the taxman takes.</span>
-            </h2>
-            <p className="text-cabo-slate text-lg leading-relaxed mb-6">
-              Get a free, no-obligation valuation of your Los Cabos property, plus what every
-              foreign seller needs to know before listing:
-            </p>
-            <ul className="space-y-3 text-cabo-slate">
-              {[
-                "What buyers are paying right now in your community",
-                "How Mexican capital gains tax (ISR) really works — and the legal ways sellers reduce it",
-                "How to sell remotely from the US or Canada, start to finish",
-              ].map((item) => (
-                <li key={item} className="flex items-start gap-3">
-                  <span className="text-sand-gold-dark text-lg leading-6">→</span>
-                  <span>{item}</span>
-                </li>
+            <div className="order-first grid grid-cols-3 gap-3 sm:gap-5 lg:order-none">
+              {PAGES.map((p, i) => (
+                <figure key={p.src} className={i === 1 ? "sm:-translate-y-6" : ""}>
+                  <Image
+                    src={p.src}
+                    alt={`Page from the guide: ${p.caption}`}
+                    width={935}
+                    height={1210}
+                    sizes="(min-width: 1024px) 220px, 30vw"
+                    className="h-auto w-full rounded-md bg-white shadow-xl ring-1 ring-black/10"
+                  />
+                  <figcaption className="mt-2 text-center text-xs font-medium text-cabo-slate sm:text-sm">
+                    {p.caption}
+                  </figcaption>
+                </figure>
               ))}
-            </ul>
+            </div>
           </div>
+        </div>
+      </section>
 
-          <SellerForm />
+      {/* ─── STORY: a real person ─── */}
+      <section className="py-16 lg:py-24">
+        <div className="mx-auto grid max-w-5xl items-center gap-10 px-4 sm:px-6 md:grid-cols-[260px_1fr] lg:px-10">
+          <Image
+            src="/images/agent/aaron.jpg"
+            alt="Aaron Cuha"
+            width={480}
+            height={480}
+            sizes="260px"
+            className="mx-auto h-52 w-52 rounded-full object-cover shadow-xl ring-4 ring-white md:h-64 md:w-64"
+          />
+          <div>
+            <h2 className="font-display text-3xl font-semibold leading-tight text-cabo-navy lg:text-4xl">
+              Why we wrote this down
+            </h2>
+            <div className="mt-5 space-y-4 text-lg leading-relaxed text-cabo-slate">
+              <p>
+                Most buyers I talk to have done their homework. They have watched the videos and read the
+                blogs. What trips them up is the part nobody explains in one place: how title actually
+                works here, what closing really costs, and which red flags matter.
+              </p>
+              <p>
+                So we put everything we walk our own clients through into one guide, and made it free.
+                Read it before your first showing and you will ask better questions than most agents do.
+              </p>
+            </div>
+            <p className="mt-6 font-semibold text-cabo-navy">Aaron Cuha</p>
+            <p className="text-sm text-cabo-slate">Living In Cabo, in partnership with Ronival Real Estate</p>
+          </div>
+        </div>
+      </section>
+
+      {/* ─── REGIONS: real photos ─── */}
+      <section className="bg-cabo-navy py-16 lg:py-24">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-10">
+          <h2 className="max-w-3xl font-display text-3xl font-semibold leading-tight text-white lg:text-[2.75rem]">
+            Five regions. Very different lives. Chapter 6 tells you which one fits.
+          </h2>
+          <div className="mt-10 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-5">
+            {REGIONS.map((r, i) => (
+              <div
+                key={r.name}
+                className={`relative aspect-[3/4] overflow-hidden rounded-xl ${i === 0 ? "col-span-2 aspect-[16/10] lg:col-span-1 lg:aspect-[3/4]" : ""}`}
+              >
+                <Image src={r.img} alt={r.name} fill sizes="(min-width: 1024px) 230px, 50vw" className="object-cover" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
+                <div className="absolute inset-x-0 bottom-0 p-3 sm:p-4">
+                  <p className="font-semibold text-white">{r.name}</p>
+                  <p className="mt-0.5 text-xs leading-snug text-white/80 sm:text-sm">{r.note}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ─── TESTIMONIALS: real, named ─── */}
+      <section className="py-16 lg:py-24">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-10">
+          <h2 className="font-display text-3xl font-semibold leading-tight text-cabo-navy lg:text-[2.75rem]">
+            What Ronival buyers say
+          </h2>
+          <div className="mt-10 grid gap-5 md:grid-cols-3">
+            {quotes.map((t) => (
+              <figure key={t.name} className="flex flex-col rounded-2xl bg-white p-6 ring-1 ring-divider">
+                <span className="font-display text-5xl leading-none text-sand-gold" aria-hidden>&ldquo;</span>
+                <blockquote className="mt-1 flex-1 text-lg leading-relaxed text-cabo-navy">{t.quote}</blockquote>
+                <figcaption className="mt-5 text-sm">
+                  <span className="font-semibold text-cabo-navy">{t.name}</span>
+                  <span className="text-cabo-slate">, {t.role}</span>
+                </figcaption>
+              </figure>
+            ))}
+          </div>
+          <p className="mt-4 text-sm text-text-muted">Reviews from ronival.com, lightly trimmed.</p>
         </div>
       </section>
 
       {/* ─── FAQ ─── */}
-      <section className="py-20 md:py-24 bg-sand-light">
-        <div className="max-w-3xl mx-auto px-6 md:px-10">
-          <div className="text-center mb-12">
-            <h2 className="heading-display text-4xl md:text-5xl text-cabo-navy leading-tight">Quick answers</h2>
-          </div>
-          <div>
+      <section className="bg-cream py-16 lg:py-24">
+        <div className="faq mx-auto max-w-3xl px-4 sm:px-6 lg:px-10">
+          <h2 className="font-display text-3xl font-semibold leading-tight text-cabo-navy lg:text-[2.75rem]">
+            Questions buyers ask first
+          </h2>
+          <div className="mt-8 divide-y divide-divider border-y border-divider">
             {FAQS.map((f) => (
-              <div key={f.q} className="border-b border-divider py-6">
-                <h3 className="font-semibold text-cabo-navy text-lg mb-2">{f.q}</h3>
-                <p className="text-cabo-slate leading-relaxed text-[15px]">{f.a}</p>
-              </div>
+              <details key={f.q} className="group py-5">
+                <summary className="flex cursor-pointer list-none items-start justify-between gap-6 text-lg font-semibold text-cabo-navy">
+                  {f.q}
+                  <span className="faq-plus mt-0.5 text-2xl leading-none text-sand-gold-dark transition-transform" aria-hidden>
+                    +
+                  </span>
+                </summary>
+                <p className="mt-3 leading-relaxed text-cabo-slate">{f.a}</p>
+              </details>
             ))}
-          </div>
-          <div className="text-center mt-12">
-            <a
-              href="#get-the-guide"
-              className="inline-flex items-center gap-2 bg-cabo-navy hover:bg-cabo-navy-deep text-white font-semibold px-8 py-4 rounded-md transition-colors"
-            >
-              Download the Free Guide
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-              </svg>
-            </a>
           </div>
         </div>
       </section>
 
-      {/* ─── FOOTER ─── */}
-      <footer className="bg-cabo-navy-deep py-12">
-        <div className="max-w-6xl mx-auto px-6 md:px-10 text-center">
-          <p className="heading-display text-2xl text-white mb-2">Living In Cabo</p>
-          <p className="text-sand-gold text-sm mb-6">In partnership with Ronival Real Estate</p>
-          <div className="h-px w-24 bg-sand-gold/30 mx-auto mb-6" />
-          <p className="text-white/60 text-sm mb-2">&copy; 2026 Living In Cabo. All rights reserved.</p>
-          <p className="text-white/40 text-xs">
-            <a href="https://livingincabo.com" className="hover:text-sand-gold transition-colors">livingincabo.com</a>
-            {" · "}
-            <a href="https://www.youtube.com/@livingincabo" className="hover:text-sand-gold transition-colors">YouTube</a>
-          </p>
-          <p className="text-white/30 text-xs mt-4 max-w-2xl mx-auto leading-relaxed">
-            This site provides general information about purchasing real estate in Mexico and does not
-            constitute legal, tax, or investment advice. Always confirm specifics with a licensed notario
-            publico and a cross-border tax professional.
-          </p>
+      {/* ─── CLOSE: the offer again ─── */}
+      <section className="relative isolate overflow-hidden py-16 lg:py-24">
+        <Image
+          src="/images/quiz/guide/chileno-bay.jpg"
+          alt=""
+          fill
+          sizes="100vw"
+          className="-z-10 object-cover"
+        />
+        <div className="absolute inset-0 -z-10 bg-cabo-navy-deep/75" />
+        <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 sm:px-6 lg:grid-cols-2 lg:px-10">
+          <div>
+            <h2 className="font-display text-3xl font-semibold leading-tight text-white lg:text-5xl">
+              Walk into your first showing knowing more than most agents.
+            </h2>
+            <p className="mt-4 text-lg text-white/85">
+              33 pages. Free. Read it on the flight down.
+            </p>
+          </div>
+          <div id={FORM_BOTTOM} className="scroll-mt-6">
+            <GuideForm heading="Send me the guide" />
+          </div>
         </div>
+      </section>
+
+      <footer className="bg-cabo-navy-deep px-4 py-10 text-center">
+        <p className="text-sm text-white/70">
+          &copy; 2026 Living In Cabo, in partnership with Ronival Real Estate.
+        </p>
+        <p className="mx-auto mt-3 max-w-2xl text-xs leading-relaxed text-white/45">
+          General information about buying real estate in Mexico, not legal, tax or investment advice.
+          Confirm specifics with a licensed notario p&uacute;blico and a cross-border tax professional.
+        </p>
       </footer>
+
+      <StickyCta watch={[FORM_TOP, FORM_BOTTOM]} />
     </div>
+  );
+}
+
+function Check() {
+  return (
+    <svg className="mt-1 h-5 w-5 flex-shrink-0 text-sand-gold" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24" aria-hidden>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+    </svg>
   );
 }

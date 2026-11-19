@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Cormorant_Garamond, DM_Sans, Playfair_Display } from "next/font/google";
+import { Cormorant_Garamond, DM_Sans, Fraunces, Playfair_Display } from "next/font/google";
 import "./globals.css";
 
 const cormorant = Cormorant_Garamond({
@@ -21,6 +21,15 @@ const playfair = Playfair_Display({
   weight: ["400", "500", "600"],
   style: ["normal", "italic"],
   variable: "--font-playfair",
+  display: "swap",
+});
+
+/* The guide landing page's display face: warmer and heavier than the thin
+   Cormorant the quiz uses, so headlines read from across a phone screen. */
+const fraunces = Fraunces({
+  subsets: ["latin"],
+  axes: ["opsz"],
+  variable: "--font-fraunces",
   display: "swap",
 });
 
@@ -75,7 +84,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${cormorant.variable} ${dmSans.variable} ${playfair.variable} h-full antialiased`}
+      className={`${cormorant.variable} ${dmSans.variable} ${playfair.variable} ${fraunces.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col font-body">{children}</body>
     </html>
