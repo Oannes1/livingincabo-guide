@@ -421,28 +421,32 @@ export interface AgentAlertParams {
 }
 
 
+/* Everything the buyer typed (and every label derived from it) is escaped
+   before it touches the markup. */
 function agentHtml(p: AgentAlertParams): string {
-  const name = `${p.firstName} ${p.lastName || ""}`.trim();
+  const e = escapeHtml;
+  const name = e(`${p.firstName} ${p.lastName || ""}`.trim());
   const top = p.matches[0];
-  const headline = top ? `${top.name} · ${top.score}%` : "no strong match";
+  const headline = top ? `${e(top.name)} · ${Number(top.score)}%` : "no strong match";
+  const tel = (p.phone || "").replace(/[^\d+]/g, "");
 
   const row = (k: string, v: string) =>
     `<tr><td style="padding:10px 0;border-bottom:1px solid #E0D6CA;font-size:12px;color:#5A7491;vertical-align:top;white-space:nowrap;padding-right:16px">${k}</td>` +
     `<td style="padding:10px 0;border-bottom:1px solid #E0D6CA;font-size:14px;color:#0A2540;text-align:right;font-weight:500">${v}</td></tr>`;
 
   const contact = [
-    row("Email", `<a href="mailto:${p.email}" style="color:#0A2540">${p.email}</a>`),
-    row("Phone", p.phone ? `<a href="tel:${p.phone}" style="color:#0A2540">${p.phone}</a>` : "not given"),
+    row("Email", `<a href="mailto:${e(p.email)}" style="color:#0A2540">${e(p.email)}</a>`),
+    row("Phone", p.phone ? `<a href="tel:${tel}" style="color:#0A2540">${e(p.phone)}</a>` : "not given"),
   ].join("");
 
-  const answers = p.answers.map(([k, v]) => row(k, v)).join("");
+  const answers = p.answers.map(([k, v]) => row(e(k), e(v))).join("");
 
   const shortlist = p.matches
     .map(
       (m, i) =>
         `<tr><td style="padding:9px 0;border-bottom:1px solid #E0D6CA;font-size:14px;color:#0A2540">` +
-        `<span style="color:#A8893D;font-weight:600">${i + 1}.</span> ${m.name}</td>` +
-        `<td style="padding:9px 0;border-bottom:1px solid #E0D6CA;font-size:14px;color:#A8893D;text-align:right;font-weight:600">${m.score}%</td></tr>`
+        `<span style="color:#A8893D;font-weight:600">${i + 1}.</span> ${e(m.name)}</td>` +
+        `<td style="padding:9px 0;border-bottom:1px solid #E0D6CA;font-size:14px;color:#A8893D;text-align:right;font-weight:600">${Number(m.score)}%</td></tr>`
     )
     .join("");
 
@@ -458,7 +462,7 @@ function agentHtml(p: AgentAlertParams): string {
     <p style="margin:6px 0 0;color:rgba(255,255,255,.62);font-size:14px">Strongest match: ${headline}</p>
   </div>
 
-  <a href="${p.briefUrl}" style="display:block;margin-top:14px;background:#C9A96E;color:#0A2540;text-decoration:none;text-align:center;padding:15px;border-radius:999px;font-weight:600;font-size:15px">Open the full brief</a>
+  <a href="${e(p.briefUrl)}" style="display:block;margin-top:14px;background:#C9A96E;color:#0A2540;text-decoration:none;text-align:center;padding:15px;border-radius:999px;font-weight:600;font-size:15px">Open the full brief</a>
   <p style="margin:10px 0 0;font-size:12px;color:#5A7491;text-align:center">Why each community matched, tradeoffs to raise, and a first text you can copy.</p>
 
   ${h2("Reach them")}
@@ -471,9 +475,9 @@ function agentHtml(p: AgentAlertParams): string {
   <table style="width:100%;border-collapse:collapse">${shortlist}</table>
 
   <p style="margin:26px 0 0;font-size:11.5px;color:#8BA3BD;text-align:center">
-    Completed ${p.submittedAt || new Date().toLocaleString("en-US")} · reply to this email to reach them directly
+    Completed ${e(p.submittedAt || new Date().toLocaleString("en-US"))} · reply to this email to reach them directly
   </p>
-</div></body></html>`;;
+</div></body></html>`;
   return html;
 }
 /** The markup, exported so it can be reviewed in a browser without sending. */
@@ -496,31 +500,7 @@ export async function sendAgentNewLead(
   const top = p.matches[0];
   const headline = top ? `${top.name} · ${top.score}%` : "no strong match";
 
-  const row = (k: string, v: string) =>
-    `<tr><td style="padding:10px 0;border-bottom:1px solid #E0D6CA;font-size:12px;color:#5A7491;vertical-align:top;white-space:nowrap;padding-right:16px">${k}</td>` +
-    `<td style="padding:10px 0;border-bottom:1px solid #E0D6CA;font-size:14px;color:#0A2540;text-align:right;font-weight:500">${v}</td></tr>`;
-
-  const contact = [
-    row("Email", `<a href="mailto:${p.email}" style="color:#0A2540">${p.email}</a>`),
-    row("Phone", p.phone ? `<a href="tel:${p.phone}" style="color:#0A2540">${p.phone}</a>` : "not given"),
-  ].join("");
-
-  const answers = p.answers.map(([k, v]) => row(k, v)).join("");
-
-  const shortlist = p.matches
-    .map(
-      (m, i) =>
-        `<tr><td style="padding:9px 0;border-bottom:1px solid #E0D6CA;font-size:14px;color:#0A2540">` +
-        `<span style="color:#A8893D;font-weight:600">${i + 1}.</span> ${m.name}</td>` +
-        `<td style="padding:9px 0;border-bottom:1px solid #E0D6CA;font-size:14px;color:#A8893D;text-align:right;font-weight:600">${m.score}%</td></tr>`
-    )
-    .join("");
-
-  const h2 = (t: string) =>
-    `<p style="margin:26px 0 6px;font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:#A8893D">${t}</p>`;
-
   const html = agentHtml(p);
-
 
   const text = `NEW QUIZ LEAD — ${name}
 Strongest match: ${headline}

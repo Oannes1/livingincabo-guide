@@ -19,6 +19,10 @@
   --color-sunset-coral: #D4734E;
   --color-ocean-teal: #1A7A6D;
 
+  /* ─── Call to action — used for buttons only, nowhere else ─── */
+  --color-cta: #C8461F;
+  --color-cta-dark: #A5381A;
+
   /* ─── Neutrals ─── */
   --color-cream: #F5F2ED;
   --color-sand-warm: #EDE6DB;
@@ -37,6 +41,7 @@
   --font-heading: var(--font-cormorant), "Georgia", serif;
   --font-body: var(--font-dm-sans), system-ui, sans-serif;
   --font-accent: var(--font-playfair), "Georgia", serif;
+  --font-display: var(--font-fraunces), "Georgia", serif;
 }
 
 /* ─── Base ─── */
@@ -154,3 +159,7 @@ body {
 }
 .animate-marquee { animation: marquee 60s linear infinite; }
 @media (prefers-reduced-motion: reduce) { .animate-marquee { animation: none; } }
+
+/* ─── Guide landing page: FAQ disclosure marker ─── */
+.faq summary::-webkit-details-marker { display: none; }
+.faq details[open] .faq-plus { transform: rotate(45deg); }
