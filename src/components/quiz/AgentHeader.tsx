@@ -11,7 +11,7 @@ const AGENT = {
   quote: "Tell me how you want to live down here and I'll tell you where it actually is.",
   photo: "/images/agent/aaron.jpg",
   /* E.164, no punctuation — some mobile browsers drop sms: links otherwise. */
-  phone: "+526241234567",
+  phone: "+17147672255",
   smsBody: "Hi Aaron — I'm going through the Cabo neighborhood quiz.",
 };
 
