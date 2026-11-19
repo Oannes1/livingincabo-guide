@@ -9,7 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.120.0",
+    "@anthropic-ai/sdk": "^1.8.0",
     "botid": "^1.5.11",
     "next": "^16.4.6",
     "react": "19.2.4",
